@@ -1,0 +1,37 @@
+{
+  "name": "trip-wise-nepal",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
+    "autoprefixer": "^10.4.24",
+    "axios": "^1.13.2",
+    "cors": "^2.8.5",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^0.562.0",
+    "next": "16.1.1",
+    "postcss": "^8.5.6",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-hook-form": "^7.71.2",
+    "react-leaflet": "^5.0.0",
+    "react-toastify": "^11.0.5",
+    "zod": "^4.2.1"
+  },
+  "devDependencies": {
+    "@types/leaflet": "^1.9.21",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.1",
+    "tailwindcss": "^3.3.3",
+    "typescript": "^5"
+  }
+}

@@ -1,0 +1,54 @@
+name: Security CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  security-check-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm install
+
+      - name: Run backend npm audit
+        working-directory: ./backend
+        run: npm audit --audit-level=high
+
+      - name: Run backend lint check
+        working-directory: ./backend
+        run: npx tsc --noEmit
+
+  security-check-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm install
+
+      - name: Run frontend npm audit
+        working-directory: ./frontend
+        run: npm audit --audit-level=high
+
+      - name: Run frontend lint
+        working-directory: ./frontend
+        run: npm run lint

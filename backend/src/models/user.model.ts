@@ -30,7 +30,7 @@ const UserSchema: Schema = new Schema<IUser>(
   {
     uuid: {
       type: String,
-      default: uuidv4,
+      default: () => uuidv4(),
       unique: true,
       index: true,
     },
@@ -112,13 +112,16 @@ const UserSchema: Schema = new Schema<IUser>(
 // Never expose sensitive fields in API responses
 UserSchema.set("toJSON", {
   transform: (_doc, ret) => {
-    delete ret.password;
-    delete ret.mfaSecret;
-    delete ret.previousPasswords;
-    delete ret.failedLoginAttempts;
-    delete ret.lockoutUntil;
-    delete ret.__v;
-    return ret;
+    const document = ret as Record<string, unknown>;
+
+    delete document.password;
+    delete document.mfaSecret;
+    delete document.previousPasswords;
+    delete document.failedLoginAttempts;
+    delete document.lockoutUntil;
+    delete document.__v;
+
+    return document;
   },
 });
 

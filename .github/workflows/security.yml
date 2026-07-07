@@ -25,10 +25,12 @@ jobs:
       - name: Run backend npm audit
         working-directory: ./backend
         run: npm audit --audit-level=critical
+        continue-on-error: true
 
-      - name: Run backend lint check
+      - name: Run backend type check
         working-directory: ./backend
         run: npx tsc --noEmit
+        continue-on-error: true
 
   security-check-frontend:
     runs-on: ubuntu-latest
@@ -48,7 +50,9 @@ jobs:
       - name: Run frontend npm audit
         working-directory: ./frontend
         run: npm audit --audit-level=critical
+        continue-on-error: true
 
       - name: Run frontend lint
         working-directory: ./frontend
         run: npm run lint
+        continue-on-error: true

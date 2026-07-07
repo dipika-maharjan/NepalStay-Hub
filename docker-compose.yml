@@ -1,0 +1,66 @@
+version: "3.9"
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: nepalstay-mongo
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - nepalstay-net
+    # Port intentionally not exposed to host — only backend container
+    # can reach it via internal Docker network (security by design).
+    # Uncomment temporarily only if you need to inspect data locally:
+    # ports:
+    #   - "27017:27017"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: nepalstay-backend
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/nepalstayhub
+      - PORT=5050
+      - NODE_ENV=development
+    env_file:
+      - ./backend/.env
+    ports:
+      - "5050:5050"
+    networks:
+      - nepalstay-net
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: nepalstay-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:5050
+    env_file:
+      - ./frontend/.env
+    ports:
+      - "3000:3000"
+    networks:
+      - nepalstay-net
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+
+networks:
+  nepalstay-net:
+    driver: bridge
+
+volumes:
+  mongo-data:

@@ -1,32 +1,29 @@
 import { Router } from "express";
-import { AuthController } from "../controllers/auth.controller";
-import { authorizedMiddleware } from "../middleware/authorization.middleware";
-import { uploads } from "../middleware/upload.middleware";
+import {
+  register,
+  verifyEmail,
+  resendOTP,
+  login,
+  logout,
+  forgotPassword,
+  resetPassword,
+  getMe,
+} from "../controllers/auth.controller";
+import {
+  authRateLimiter,
+  loginRateLimiter,
+} from "../middleware/rateLimiter.middleware";
+import { requireAuth } from "../middleware/auth.middleware";
 
-let authController = new AuthController();
 const router = Router();
 
-router.post("/register", authController.register);
-router.post("/login", authController.login);
-router.post("/user", uploads.single("image"), authController.createUserWithImage);
-
-router.get('/profile', authorizedMiddleware, authController.getProfile);
-router.put(
-    '/update-profile', 
-    authorizedMiddleware,   
-    uploads.single('image'),   
-    authController.updateProfile
-);
-router.put(
-    '/:id',
-    authorizedMiddleware,
-    uploads.single('image'),
-    authController.updateUserById
-);
-
-router.post("/request-password-reset", 
-    authController.sendResetPasswordEmail);
-
-router.post("/reset-password/:token", authController.resetPassword);
+router.post("/register", authRateLimiter, register);
+router.post("/verify-email", authRateLimiter, verifyEmail);
+router.post("/resend-otp", authRateLimiter, resendOTP);
+router.post("/login", loginRateLimiter, login);
+router.post("/logout", requireAuth, logout);
+router.post("/forgot-password", authRateLimiter, forgotPassword);
+router.post("/reset-password", authRateLimiter, resetPassword);
+router.get("/me", requireAuth, getMe);
 
 export default router;

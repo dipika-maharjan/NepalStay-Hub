@@ -6,73 +6,85 @@ import { Search, Star } from "lucide-react";
 
 import mainImage from "../public/images/main-section.png";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { getAllAccommodations, searchAccommodations, Accommodation } from "../lib/api/accommodation";
+import { useCallback, useEffect, useState } from "react";
+import {
+  getActiveAccommodations,
+  searchAccommodations,
+  Accommodation,
+} from "../lib/api/accommodation";
 import Navbar from "./components/navbar/Navbar";
 import Footer from "./components/footer/Footer";
-
-
-
 
 export default function HomePage() {
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadedOnce, setLoadedOnce] = useState(false);
 
-  useEffect(() => {
-    setLoading(true);
-    getAllAccommodations()
-      .then((res) => {
-        if (Array.isArray(res.data)) {
-          setAccommodations(res.data.filter((a) => a.isActive !== false));
-        }
-      })
-      .finally(() => setLoading(false));
+  const fetchAccommodations = useCallback(async (query?: string) => {
+    if (!query || !query.trim()) {
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+    try {
+      const res =
+        query && query.trim()
+          ? await searchAccommodations(query.trim())
+          : await getActiveAccommodations();
+
+      if (res?.success && Array.isArray(res.data)) {
+        const filtered = res.data
+          .filter((a) => a.isActive !== false)
+          .slice(0, 6);
+        setAccommodations(filtered);
+        setLoadedOnce(true);
+      }
+    } catch (error) {
+      console.error("Failed to load accommodations", error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const handleSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearch(value);
-    if (value.trim() === "") {
-      setLoading(true);
-      getAllAccommodations()
-        .then((res) => {
-          if (Array.isArray(res.data)) {
-            setAccommodations(res.data.filter((a) => a.isActive !== false));
-          }
-        })
-        .finally(() => setLoading(false));
+  useEffect(() => {
+    if (!search.trim()) {
+      void fetchAccommodations();
       return;
     }
-    setLoading(true);
-    searchAccommodations(value)
-      .then((res) => {
-        if (Array.isArray(res.data)) {
-          setAccommodations(res.data.filter((a) => a.isActive !== false));
-        }
-      })
-      .finally(() => setLoading(false));
-  };
 
+    const timer = window.setTimeout(() => {
+      void fetchAccommodations(search);
+    }, 350);
+
+    return () => window.clearTimeout(timer);
+  }, [fetchAccommodations, search]);
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+  };
 
   // Scroll to 'For You' section or go to /accommodations if no results
   const handleExploreNow = () => {
-    const forYouSection = document.getElementById('for-you-section');
+    const forYouSection = document.getElementById("for-you-section");
     if (accommodations.length > 0 && forYouSection) {
-      forYouSection.scrollIntoView({ behavior: 'smooth' });
+      forYouSection.scrollIntoView({ behavior: "smooth" });
     } else {
-      window.location.href = '/accommodations';
+      window.location.href = "/accommodations";
     }
   };
 
   return (
     <div className="min-h-screen bg-white text-[#134e4a] flex flex-col">
-      <Navbar/>
+      <Navbar />
       <main className="flex-1 max-w-6xl mx-auto px-6 py-8">
         {/* Search Bar */}
         <div className="flex justify-center mb-10">
           <div className="relative w-full max-w-xl">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+            <Search
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+              size={20}
+            />
             <input
               type="text"
               placeholder="Search destinations, places"
@@ -85,10 +97,18 @@ export default function HomePage() {
 
         {/* Hero Section */}
         <section className="relative h-87.5 rounded-3xl overflow-hidden mb-12 shadow-xl">
-          <Image src={mainImage} alt="Nepal Mountains" fill className="object-cover" priority />
+          <Image
+            src={mainImage}
+            alt="Nepal Mountains"
+            fill
+            className="object-cover"
+            priority
+          />
           <div className="absolute inset-0 bg-black/30 flex flex-col items-center justify-center text-white text-center">
             <h2 className="text-4xl font-bold mb-2">Discover Your Nepal</h2>
-            <p className="mb-6 opacity-90">Personalized trips to breathtaking destinations.</p>
+            <p className="mb-6 opacity-90">
+              Personalized trips to breathtaking destinations.
+            </p>
             <button
               className="bg-[#ff9f1c] hover:bg-[#f39200] text-white px-8 py-3 rounded-full font-bold transition-transform hover:scale-105"
               onClick={handleExploreNow}
@@ -101,11 +121,25 @@ export default function HomePage() {
 
         {/* For You Section */}
         <section id="for-you-section" className="mb-12 scroll-mt-24">
+          {!loadedOnce && !loading && accommodations.length === 0 && (
+            <div className="text-sm text-gray-500 mb-4">
+              Showing a smaller preview first to keep the page responsive.
+            </div>
+          )}
           <h3 className="text-2xl font-bold mb-6">For You</h3>
           {loading ? (
-            <div className="text-center py-10 text-gray-400">Loading...</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="animate-pulse bg-gray-100 rounded-2xl h-64"
+                />
+              ))}
+            </div>
           ) : accommodations.length === 0 ? (
-            <div className="text-center py-10 text-gray-400">No accommodations found. Try searching or check back later!</div>
+            <div className="text-center py-10 text-gray-400">
+              No accommodations found. Try searching or check back later!
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {accommodations.map((acc) => (
@@ -117,12 +151,15 @@ export default function HomePage() {
                 >
                   <div className="h-48 relative">
                     {(() => {
-                      const imgSrc = acc.images && acc.images.length > 0
-                        ? acc.images[0].startsWith('http')
-                          ? acc.images[0]
-                          : `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000'}${acc.images[0]}`
-                        : "/images/main-section.png";
-                      const isLocal = imgSrc.startsWith("/images/") || imgSrc.startsWith("/_next/");
+                      const imgSrc =
+                        acc.images && acc.images.length > 0
+                          ? acc.images[0].startsWith("http")
+                            ? acc.images[0]
+                            : `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}${acc.images[0]}`
+                          : "/images/main-section.png";
+                      const isLocal =
+                        imgSrc.startsWith("/images/") ||
+                        imgSrc.startsWith("/_next/");
                       if (isLocal) {
                         return (
                           <Image
@@ -130,6 +167,8 @@ export default function HomePage() {
                             alt={acc.name}
                             fill
                             className="object-cover"
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            loading="eager"
                           />
                         );
                       } else {
@@ -137,7 +176,13 @@ export default function HomePage() {
                           <img
                             src={imgSrc}
                             alt={acc.name}
-                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                            loading="eager"
+                            decoding="async"
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                            }}
                           />
                         );
                       }
@@ -145,13 +190,26 @@ export default function HomePage() {
                   </div>
                   <div className="p-4 flex flex-col grow">
                     <div className="flex justify-between items-start mb-1">
-                      <h4 className="font-bold text-lg leading-tight line-clamp-1" title={acc.name}>{acc.name}</h4>
+                      <h4
+                        className="font-bold text-lg leading-tight line-clamp-1"
+                        title={acc.name}
+                      >
+                        {acc.name}
+                      </h4>
                       <span className="flex items-center text-xs font-bold gap-1 shrink-0">
-                        <Star size={14} className="fill-yellow-400 text-yellow-400" />
+                        <Star
+                          size={14}
+                          className="fill-yellow-400 text-yellow-400"
+                        />
                         {acc.rating?.toFixed(1) ?? "-"}
                       </span>
                     </div>
-                    <p className="text-xs text-[#0c7272] mb-2 font-medium line-clamp-1" title={acc.address}>{acc.address}</p>
+                    <p
+                      className="text-xs text-[#0c7272] mb-2 font-medium line-clamp-1"
+                      title={acc.address}
+                    >
+                      {acc.address}
+                    </p>
                     <p className="text-[11px] text-gray-600 leading-relaxed line-clamp-3">
                       {acc.overview}
                     </p>
@@ -162,7 +220,7 @@ export default function HomePage() {
           )}
         </section>
       </main>
-      <Footer/>
+      <Footer />
     </div>
   );
 }

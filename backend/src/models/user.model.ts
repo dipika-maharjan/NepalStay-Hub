@@ -21,6 +21,10 @@ export interface IUser extends Document {
   // Brute force protection
   failedLoginAttempts: number;
   lockoutUntil: Date | null;
+  emailOTP: string | null;
+  emailOTPExpiry: Date | null;
+  passwordResetToken: string | null;
+  passwordResetTokenExpiry: Date | null;
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -103,6 +107,22 @@ const UserSchema: Schema = new Schema<IUser>(
       type: Date,
       default: null,
     },
+    emailOTP: {
+      type: String,
+      default: null,
+    },
+    emailOTPExpiry: {
+      type: Date,
+      default: null,
+    },
+    passwordResetToken: {
+      type: String,
+      default: null,
+    },
+    passwordResetTokenExpiry: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -119,6 +139,10 @@ UserSchema.set("toJSON", {
     delete document.previousPasswords;
     delete document.failedLoginAttempts;
     delete document.lockoutUntil;
+    delete document.emailOTP;
+    delete document.emailOTPExpiry;
+    delete document.passwordResetToken;
+    delete document.passwordResetTokenExpiry;
     delete document.__v;
 
     return document;

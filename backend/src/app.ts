@@ -11,6 +11,7 @@ import roomTypeRoutes from "./routes/roomType.route";
 import optionalExtraRoutes from "./routes/optionalExtra.route";
 import bookingRoutes from "./routes/booking.route";
 import reviewRoutes from "./routes/review.route";
+import mfaRoutes from "./routes/mfa.route";
 import { generalRateLimiter } from "./middleware/rateLimiter.middleware";
 
 const app: Application = express();
@@ -52,5 +53,6 @@ app.use("/api/optional-extras", optionalExtraRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/uploads", express.static(path.join(__dirname, "../uploads"))); //serve static files (images)
+app.use("/api/mfa", mfaRoutes);
 
 export default app;

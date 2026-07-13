@@ -12,7 +12,8 @@ import optionalExtraRoutes from "./routes/optionalExtra.route";
 import bookingRoutes from "./routes/booking.route";
 import reviewRoutes from "./routes/review.route";
 import mfaRoutes from "./routes/mfa.route";
-import { generalRateLimiter } from "./middleware/rateLimiter.middleware";
+import ipBlockRoutes from "./routes/admin/ipBlock.route";
+import { generalRateLimiter, ipBlockMiddleware } from "./middleware/rateLimiter.middleware";
 
 const app: Application = express();
 
@@ -31,6 +32,7 @@ app.use(
 );
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(ipBlockMiddleware);
 app.use(generalRateLimiter);
 
 let corsOptions = {
@@ -54,5 +56,6 @@ app.use("/api/bookings", bookingRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/uploads", express.static(path.join(__dirname, "../uploads"))); //serve static files (images)
 app.use("/api/mfa", mfaRoutes);
+app.use("/api/admin/ip-blocks", ipBlockRoutes);
 
 export default app;

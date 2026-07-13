@@ -10,7 +10,9 @@ export const getAllUsers = async (
 ): Promise<void> => {
   try {
     const users = await UserModel.find()
-      .select("-password -mfaSecret -previousPasswords -emailOTP -passwordResetToken")
+      .select(
+        "-password -mfaSecret -previousPasswords -emailOTP -passwordResetToken",
+      )
       .sort({ createdAt: -1 });
     res.status(200).json({ users });
   } catch {

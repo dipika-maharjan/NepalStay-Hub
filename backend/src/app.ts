@@ -12,6 +12,7 @@ import optionalExtraRoutes from "./routes/optionalExtra.route";
 import bookingRoutes from "./routes/booking.route";
 import reviewRoutes from "./routes/review.route";
 import mfaRoutes from "./routes/mfa.route";
+import profileRoutes from "./routes/profile.route";
 import ipBlockRoutes from "./routes/admin/ipBlock.route";
 import {
   generalRateLimiter,
@@ -59,6 +60,7 @@ app.use("/api/bookings", bookingRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/uploads", express.static(path.join(__dirname, "../uploads"))); //serve static files (images)
 app.use("/api/mfa", mfaRoutes);
+app.use("/api/profile", profileRoutes);
 app.use("/api/admin/ip-blocks", ipBlockRoutes);
 
 export default app;

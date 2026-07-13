@@ -1,18 +1,23 @@
 import { Router } from "express";
-import { authorizedMiddleware, adminOnlyMiddleware } from "../../middleware/authorization.middleware";
-import { AdminUserController } from "../../controllers/admin/user.controller";
-import { uploads } from "../../middleware/upload.middleware";
-let adminUserController = new AdminUserController();
+import {
+  getAllUsers,
+  getUserById,
+  updateUserRole,
+  deleteUser,
+  getAuditLogs,
+} from "../../controllers/admin/adminUser.controller";
+import { requireAuth, requireRole } from "../../middleware/auth.middleware";
 
 const router = Router();
 
-router.use(authorizedMiddleware); 
-router.use(adminOnlyMiddleware); 
+// All routes admin only
+router.use(requireAuth, requireRole("admin"));
 
-router.post("/", uploads.single("image"), adminUserController.createUser);
-router.get("/", adminUserController.getAllUsers);
-router.put("/:id", uploads.single("image"), adminUserController.updateUser);
-router.delete("/:id", adminUserController.deleteUser);
-router.get("/:id", adminUserController.getUserById);
+router.get("/", getAllUsers);
+router.get("/audit-logs", getAuditLogs);
+router.get("/:id", getUserById);
+router.put("/:id/role", updateUserRole);
+router.delete("/:id", deleteUser);
 
 export const adminUserRoutes = router;
+export default router;

@@ -178,6 +178,7 @@ export class BookingService {
       const newBooking = await bookingRepository.createBooking({
         userId: new mongoose.Types.ObjectId(userId),
         accommodationId: accommodation._id,
+        hostId: accommodation.hostId,
         roomTypeId: roomType._id,
         checkIn,
         checkOut,
@@ -284,7 +285,7 @@ export class BookingService {
     id: string,
     data: {
       bookingStatus?: "pending" | "confirmed" | "cancelled" | "completed";
-      paymentStatus?: "pending" | "paid";
+      paymentStatus?: "pending" | "paid" | "refunded";
     },
   ) {
     try {

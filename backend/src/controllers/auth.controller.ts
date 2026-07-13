@@ -451,9 +451,11 @@ export const resetPassword = async (
 };
 
 // GET /api/auth/me
-export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getMe = async (req: Request, res: Response): Promise<void> => {
+  const authReq = req as AuthRequest;
+
   try {
-    const user = await UserModel.findById(req.user?.userId);
+    const user = await UserModel.findById(authReq.user?.userId);
     if (!user) {
       res.status(404).json({ message: "User not found" });
       return;

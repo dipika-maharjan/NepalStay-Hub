@@ -17,7 +17,7 @@ export const BookingSchema = z.object({
     totalPrice: z.number().min(0),
     specialRequest: z.string().optional(),
     bookingStatus: z.enum(["pending", "confirmed", "cancelled", "completed"]).default("pending"),
-    paymentStatus: z.enum(["pending", "paid"]).default("pending"),
+    paymentStatus: z.enum(["pending", "paid", "refunded"]).default("pending"),
 });
 
 export type Booking = z.infer<typeof BookingSchema>;

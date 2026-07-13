@@ -1,5 +1,9 @@
 import { Router } from "express";
-import { getBlockedIPs, blockIP, unblockIP } from "../../controllers/ipBlock.controller";
+import {
+  getBlockedIPs,
+  blockIP,
+  unblockIP,
+} from "../../controllers/ipBlock.controller";
 import { requireAuth, requireRole } from "../../middleware/auth.middleware";
 
 const router = Router();

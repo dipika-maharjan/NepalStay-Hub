@@ -2,20 +2,23 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface IBooking extends Document {
   _id: mongoose.Types.ObjectId;
-  travelerId: mongoose.Types.ObjectId;
+  userId: mongoose.Types.ObjectId;
   accommodationId: mongoose.Types.ObjectId;
   hostId: mongoose.Types.ObjectId;
   roomTypeId: mongoose.Types.ObjectId;
   checkIn: Date;
   checkOut: Date;
   guests: number;
+  roomsBooked: number;
   nights: number;
-  pricePerNight: number;
+  basePriceTotal: number;
   extrasTotal: number;
+  tax: number;
+  serviceFee: number;
   totalPrice: number;
   specialRequest: string | null;
-  status: "pending" | "confirmed" | "cancelled" | "completed";
-  paymentStatus: "unpaid" | "paid" | "refunded";
+  bookingStatus: "pending" | "confirmed" | "cancelled" | "completed";
+  paymentStatus: "pending" | "paid" | "refunded";
   paymentId: mongoose.Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
@@ -23,8 +26,8 @@ export interface IBooking extends Document {
 
 const BookingSchema: Schema = new Schema<IBooking>(
   {
-    // travelerId replaces generic userId — explicit for IDOR checks
-    travelerId: {
+    // User ownership for booking access checks
+    userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
@@ -53,21 +56,24 @@ const BookingSchema: Schema = new Schema<IBooking>(
     checkIn: { type: Date, required: true },
     checkOut: { type: Date, required: true },
     guests: { type: Number, required: true, min: 1 },
+    roomsBooked: { type: Number, required: true, min: 1 },
     nights: { type: Number, required: true, min: 1 },
-    pricePerNight: { type: Number, required: true, min: 0 },
+    basePriceTotal: { type: Number, required: true, min: 0 },
     // Stored separately for clear price breakdown
     extrasTotal: { type: Number, required: true, default: 0, min: 0 },
+    tax: { type: Number, required: true, default: 0, min: 0 },
+    serviceFee: { type: Number, required: true, default: 0, min: 0 },
     totalPrice: { type: Number, required: true, min: 0 },
     specialRequest: { type: String, default: null, maxlength: 500 },
-    status: {
+    bookingStatus: {
       type: String,
       enum: ["pending", "confirmed", "cancelled", "completed"],
       default: "pending",
     },
     paymentStatus: {
       type: String,
-      enum: ["unpaid", "paid", "refunded"],
-      default: "unpaid",
+      enum: ["pending", "paid", "refunded"],
+      default: "pending",
     },
     paymentId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -81,9 +87,9 @@ const BookingSchema: Schema = new Schema<IBooking>(
 // Compound index for double-booking prevention checks
 BookingSchema.index({ roomTypeId: 1, checkIn: 1, checkOut: 1 });
 // IDOR ownership checks
-BookingSchema.index({ travelerId: 1, status: 1 });
+BookingSchema.index({ userId: 1, bookingStatus: 1 });
 // Host dashboard queries
-BookingSchema.index({ hostId: 1, status: 1 });
+BookingSchema.index({ hostId: 1, bookingStatus: 1 });
 
 BookingSchema.set("toJSON", {
   transform: (_doc, ret) => {

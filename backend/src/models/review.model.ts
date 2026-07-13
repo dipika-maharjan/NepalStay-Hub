@@ -3,7 +3,7 @@ import mongoose, { Schema, Document } from "mongoose";
 export interface IReview extends Document {
   _id: mongoose.Types.ObjectId;
   bookingId: mongoose.Types.ObjectId;
-  travelerId: mongoose.Types.ObjectId;
+  userId: mongoose.Types.ObjectId;
   accommodationId: mongoose.Types.ObjectId;
   rating: number;
   comment: string;
@@ -20,7 +20,7 @@ const ReviewSchema: Schema = new Schema<IReview>(
       required: true,
       unique: true, // One review per booking maximum
     },
-    travelerId: {
+    userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,

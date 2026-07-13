@@ -15,10 +15,7 @@ export const getBlockedIPs = async (
 };
 
 // POST /api/admin/ip-blocks
-export const blockIP = async (
-  req: Request,
-  res: Response,
-): Promise<void> => {
+export const blockIP = async (req: Request, res: Response): Promise<void> => {
   try {
     const { ipAddress, reason, permanent, durationHours } = req.body;
 
@@ -33,7 +30,13 @@ export const blockIP = async (
 
     const block = await IPBlockModel.findOneAndUpdate(
       { ipAddress },
-      { ipAddress, reason, permanent: !!permanent, expiresAt, blockedAt: new Date() },
+      {
+        ipAddress,
+        reason,
+        permanent: !!permanent,
+        expiresAt,
+        blockedAt: new Date(),
+      },
       { upsert: true, new: true },
     );
 
@@ -44,10 +47,7 @@ export const blockIP = async (
 };
 
 // DELETE /api/admin/ip-blocks/:ip
-export const unblockIP = async (
-  req: Request,
-  res: Response,
-): Promise<void> => {
+export const unblockIP = async (req: Request, res: Response): Promise<void> => {
   try {
     const { ip } = req.params;
     await IPBlockModel.findOneAndDelete({ ipAddress: ip });

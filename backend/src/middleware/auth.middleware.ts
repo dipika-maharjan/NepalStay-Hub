@@ -2,22 +2,28 @@ import { Request, Response, NextFunction } from "express";
 import { verifyToken } from "../utils/jwt.util";
 import { UserModel } from "../models/user.model";
 
-export interface AuthRequest extends Request {
-  user?: {
-    userId: string;
-    role: string;
-    uuid: string;
-  };
+export interface AuthUser {
+  userId: string;
+  role: string;
+  uuid: string;
 }
 
+export interface AuthRequest extends Request {
+  user?: AuthUser;
+}
+
+const asAuthRequest = (req: Request): AuthRequest => req as AuthRequest;
+
 export const requireAuth = async (
-  req: AuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void> => {
+  const authReq = asAuthRequest(req);
+
   try {
     const token =
-      req.cookies?.token || req.headers.authorization?.replace("Bearer ", "");
+      authReq.cookies?.token || authReq.headers.authorization?.replace("Bearer ", "");
 
     if (!token) {
       res.status(401).json({ message: "Authentication required" });
@@ -32,7 +38,7 @@ export const requireAuth = async (
       return;
     }
 
-    req.user = payload;
+    authReq.user = payload;
     next();
   } catch {
     res.status(401).json({ message: "Invalid or expired token" });
@@ -40,12 +46,14 @@ export const requireAuth = async (
 };
 
 export const requireRole = (...roles: string[]) => {
-  return (req: AuthRequest, res: Response, next: NextFunction): void => {
-    if (!req.user) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const authReq = asAuthRequest(req);
+
+    if (!authReq.user) {
       res.status(401).json({ message: "Authentication required" });
       return;
     }
-    if (!roles.includes(req.user.role)) {
+    if (!roles.includes(authReq.user.role)) {
       res.status(403).json({ message: "Insufficient permissions" });
       return;
     }
@@ -54,15 +62,17 @@ export const requireRole = (...roles: string[]) => {
 };
 
 export const requireHostVerified = async (
-  req: AuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void> => {
-  if (!req.user) {
+  const authReq = asAuthRequest(req);
+
+  if (!authReq.user) {
     res.status(401).json({ message: "Authentication required" });
     return;
   }
-  const user = await UserModel.findById(req.user.userId);
+  const user = await UserModel.findById(authReq.user.userId);
   if (!user?.isHostVerified) {
     res.status(403).json({ message: "Host verification required" });
     return;

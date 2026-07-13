@@ -13,7 +13,10 @@ import bookingRoutes from "./routes/booking.route";
 import reviewRoutes from "./routes/review.route";
 import mfaRoutes from "./routes/mfa.route";
 import ipBlockRoutes from "./routes/admin/ipBlock.route";
-import { generalRateLimiter, ipBlockMiddleware } from "./middleware/rateLimiter.middleware";
+import {
+  generalRateLimiter,
+  ipBlockMiddleware,
+} from "./middleware/rateLimiter.middleware";
 
 const app: Application = express();
 

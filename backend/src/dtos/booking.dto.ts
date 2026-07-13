@@ -14,7 +14,7 @@ export const CreateBookingDTO = z.object({
     roomsBooked: z.coerce.number().int().positive(),
     extras: z.array(BookingExtraRequestSchema).optional(),
     specialRequest: z.string().optional(),
-    paymentStatus: z.enum(["pending", "paid"]).optional(),
+    paymentStatus: z.enum(["pending", "paid", "refunded"]).optional(),
 });
 
 export const UpdateBookingDTO = z.object({
@@ -29,7 +29,7 @@ export const UpdateBookingDTO = z.object({
 
 export const UpdateBookingStatusDTO = z.object({
     bookingStatus: z.enum(["pending", "confirmed", "cancelled", "completed"]).optional(),
-    paymentStatus: z.enum(["pending", "paid"]).optional(),
+    paymentStatus: z.enum(["pending", "paid", "refunded"]).optional(),
 }).refine((data) => data.bookingStatus || data.paymentStatus, {
     message: "At least one of bookingStatus or paymentStatus is required",
 });

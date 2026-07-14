@@ -1,207 +1,210 @@
 import { Request, Response } from "express";
-import { BookingService } from "../services/booking.service";
-import { CreateBookingDTO, UpdateBookingStatusDTO, UpdateBookingDTO } from "../dtos/booking.dto";
-import z from "zod";
+import { BookingModel } from "../models/booking.model";
+import { AccommodationModel } from "../models/accommodation.model";
+import { RoomTypeModel } from "../models/roomType.model";
+import { AuditLogModel } from "../models/auditLog.model";
+import { AuthRequest } from "../middleware/auth.middleware";
 
-const bookingService = new BookingService();
+// POST /api/bookings
+export const createBooking = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const authReq = req as AuthRequest;
+    const travelerId = authReq.user?.userId;
+    const { accommodationId, roomTypeId, checkIn, checkOut, guests, specialRequest, extrasTotal } = req.body;
 
-export class BookingController {
-    createBooking = async (req: Request, res: Response) => {
-        try {
-            const normalizedBody = {
-                ...req.body,
-                roomsBooked: req.body.roomsBooked ?? req.body.rooms,
-            };
+    if (!accommodationId || !roomTypeId || !checkIn || !checkOut || !guests) {
+      res.status(400).json({ message: "Required fields missing" });
+      return;
+    }
 
-            const parseData = CreateBookingDTO.safeParse(normalizedBody);
-            if (!parseData.success) {
-                return res.status(400).json({
-                    success: false,
-                    message: z.prettifyError(parseData.error),
-                });
-            }
+    const accommodation = await AccommodationModel.findOne({
+      _id: accommodationId,
+      isActive: true,
+      isApprovedByAdmin: true,
+    });
+    if (!accommodation) {
+      res.status(404).json({ message: "Accommodation not found" });
+      return;
+    }
 
-            const userId = (req.user as { _id?: string } | undefined)?._id;
-            if (!userId) {
-                return res.status(401).json({ success: false, message: "Unauthorized" });
-            }
+    const roomType = await RoomTypeModel.findOne({ _id: roomTypeId, accommodationId, isActive: true });
+    if (!roomType) {
+      res.status(404).json({ message: "Room type not found" });
+      return;
+    }
 
-            const result = await bookingService.createBooking(parseData.data, String(userId));
-            return res.status(201).json({
-                success: true,
-                message: "Booking created successfully",
-                data: result,
-            });
-        } catch (error: Error | any) {
-            return res.status(error.statusCode ?? 500).json({
-                success: false,
-                message: error.message || "Failed to create booking",
-            });
-        }
-    };
+    const checkInDate = new Date(checkIn);
+    const checkOutDate = new Date(checkOut);
+    const roomsBooked = Number(req.body.roomsBooked || 1);
 
-    getBookingById = async (req: Request, res: Response) => {
-        try {
-            const { id } = req.params;
-            const bookingData = await bookingService.getBookingById(id);
+    if (checkInDate >= checkOutDate) {
+      res.status(400).json({ message: "Check-out must be after check-in" });
+      return;
+    }
 
-            const user = req.user as { _id?: string; role?: string } | undefined;
-            const isOwner = user?._id && String((bookingData.booking as any).userId?._id || (bookingData.booking as any).userId) === String(user._id);
-            const isAdmin = user?.role === "admin";
+    if (checkInDate < new Date()) {
+      res.status(400).json({ message: "Check-in cannot be in the past" });
+      return;
+    }
 
-            if (!isOwner && !isAdmin) {
-                return res.status(403).json({ success: false, message: "Forbidden" });
-            }
+    if (Number(guests) > roomType.maxGuests) {
+      res.status(400).json({ message: `Maximum ${roomType.maxGuests} guests allowed for this room` });
+      return;
+    }
 
-            return res.status(200).json({ success: true, data: bookingData });
-        } catch (error: Error | any) {
-            return res.status(error.statusCode ?? 500).json({
-                success: false,
-                message: error.message || "Failed to fetch booking",
-            });
-        }
-    };
+    const conflict = await BookingModel.findOne({
+      roomTypeId,
+      bookingStatus: { $in: ["pending", "confirmed"] },
+      $or: [{ checkIn: { $lt: checkOutDate }, checkOut: { $gt: checkInDate } }],
+    });
 
-    getMyBookings = async (req: Request, res: Response) => {
-        try {
-            const userId = (req.user as { _id?: string } | undefined)?._id;
-            if (!userId) {
-                return res.status(401).json({ success: false, message: "Unauthorized" });
-            }
+    if (conflict) {
+      res.status(409).json({ message: "Room not available for selected dates" });
+      return;
+    }
 
-            const bookings = await bookingService.getUserBookings(String(userId));
-            return res.status(200).json({ success: true, data: bookings });
-        } catch (error: Error | any) {
-            return res.status(error.statusCode ?? 500).json({
-                success: false,
-                message: error.message || "Failed to fetch bookings",
-            });
-        }
-    };
+    const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
+    const totalPrice = (roomType.pricePerNight * nights) + Number(extrasTotal || 0);
 
-    getAllBookings = async (req: Request, res: Response) => {
-        try {
-            const user = req.user as { role?: string } | undefined;
-            if (user?.role !== "admin") {
-                return res.status(403).json({ success: false, message: "Forbidden" });
-            }
+    const booking = await BookingModel.create({
+      userId: travelerId,
+      accommodationId,
+      hostId: accommodation.hostId,
+      roomTypeId,
+      checkIn: checkInDate,
+      checkOut: checkOutDate,
+      guests: Number(guests),
+      roomsBooked,
+      nights,
+      basePriceTotal: roomType.pricePerNight * nights,
+      extrasTotal: Number(extrasTotal || 0),
+      tax: 0,
+      serviceFee: 0,
+      totalPrice,
+      specialRequest: specialRequest?.trim() || null,
+      bookingStatus: "pending",
+      paymentStatus: "pending",
+    });
 
-            const bookings = await bookingService.getAllBookings();
-            return res.status(200).json({ success: true, data: bookings });
-        } catch (error: Error | any) {
-            return res.status(error.statusCode ?? 500).json({
-                success: false,
-                message: error.message || "Failed to fetch bookings",
-            });
-        }
-    };
+    const bookingDoc = booking as any;
+    await AuditLogModel.create({
+      userId: travelerId,
+      action: "BOOKING_CREATED",
+      targetType: "Booking",
+      targetId: bookingDoc._id.toString(),
+      ipAddress: req.ip || "unknown",
+      metadata: { accommodationId, checkIn, checkOut, totalPrice },
+      timestamp: new Date(),
+    });
 
-    cancelBooking = async (req: Request, res: Response) => {
-        try {
-            const { id } = req.params;
-            const bookingData = await bookingService.getBookingById(id);
+    res.status(201).json({ message: "Booking created successfully", booking });
+  } catch {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
 
-            const user = req.user as { _id?: string; role?: string } | undefined;
-            const isOwner = user?._id && String((bookingData.booking as any).userId?._id || (bookingData.booking as any).userId) === String(user._id);
-            const isAdmin = user?.role === "admin";
+// GET /api/bookings/my — traveler's own bookings only (IDOR protected)
+export const getMyBookings = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const authReq = req as AuthRequest;
+    const bookings = await BookingModel.find({ userId: authReq.user?.userId })
+      .populate("accommodationId", "title images address")
+      .populate("roomTypeId", "name pricePerNight")
+      .sort({ createdAt: -1 });
+    res.status(200).json({ bookings });
+  } catch {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
 
-            if (!isOwner && !isAdmin) {
-                return res.status(403).json({ success: false, message: "Forbidden" });
-            }
+// GET /api/bookings/host — host's incoming bookings
+export const getHostBookings = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const authReq = req as AuthRequest;
+    const bookings = await BookingModel.find({ hostId: authReq.user?.userId })
+      .populate("userId", "name email")
+      .populate("accommodationId", "title")
+      .populate("roomTypeId", "name")
+      .sort({ createdAt: -1 });
+    res.status(200).json({ bookings });
+  } catch {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
 
-            const updated = await bookingService.cancelBooking(id);
-            return res.status(200).json({
-                success: true,
-                message: "Booking cancelled successfully",
-                data: updated,
-            });
-        } catch (error: Error | any) {
-            return res.status(error.statusCode ?? 500).json({
-                success: false,
-                message: error.message || "Failed to cancel booking",
-            });
-        }
-    };
+// GET /api/bookings/:id — IDOR: only traveler or host of this booking
+export const getBookingById = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const authReq = req as AuthRequest;
+    const userId = authReq.user?.userId;
+    const booking = await BookingModel.findOne({
+      _id: req.params.id,
+      $or: [{ userId: userId }, { hostId: userId }],
+    })
+      .populate("accommodationId", "title images address location")
+      .populate("roomTypeId", "name pricePerNight")
+      .populate("userId", "name email");
 
-    updateBookingStatuses = async (req: Request, res: Response) => {
-        try {
-            const user = req.user as { role?: string } | undefined;
-            if (user?.role !== "admin") {
-                return res.status(403).json({ success: false, message: "Forbidden" });
-            }
+    if (!booking) {
+      res.status(404).json({ message: "Booking not found or access denied" });
+      return;
+    }
+    res.status(200).json({ booking });
+  } catch {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
 
-            const { id } = req.params;
-            const parseData = UpdateBookingStatusDTO.safeParse(req.body);
-            if (!parseData.success) {
-                return res.status(400).json({
-                    success: false,
-                    message: z.prettifyError(parseData.error),
-                });
-            }
+// PUT /api/bookings/:id/cancel
+export const cancelBooking = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const authReq = req as AuthRequest;
+    const userId = authReq.user?.userId;
+    const booking = await BookingModel.findOne({
+      _id: req.params.id,
+      $or: [{ userId: userId }, { hostId: userId }],
+    });
 
-            const updated = await bookingService.updateBookingStatuses(id, parseData.data);
-            return res.status(200).json({
-                success: true,
-                message: "Booking updated successfully",
-                data: updated,
-            });
-        } catch (error: Error | any) {
-            return res.status(error.statusCode ?? 500).json({
-                success: false,
-                message: error.message || "Failed to update booking",
-            });
-        }
-    };
+    if (!booking) {
+      res.status(404).json({ message: "Booking not found or access denied" });
+      return;
+    }
 
-    deleteBooking = async (req: Request, res: Response) => {
-        try {
-            const user = req.user as { role?: string } | undefined;
-            if (user?.role !== "admin") {
-                return res.status(403).json({ success: false, message: "Forbidden" });
-            }
+    const bookingDoc = booking as any;
+    if (!["pending", "confirmed"].includes(bookingDoc.bookingStatus)) {
+      res.status(400).json({ message: "Booking cannot be cancelled in its current state" });
+      return;
+    }
 
-            const { id } = req.params;
-            const result = await bookingService.deleteBooking(id);
-            return res.status(200).json({ success: true, message: result.message });
-        } catch (error: Error | any) {
-            return res.status(error.statusCode ?? 500).json({
-                success: false,
-                message: error.message || "Failed to delete booking",
-            });
-        }
-    };
+    bookingDoc.bookingStatus = "cancelled";
+    await bookingDoc.save();
 
-    updateBooking = async (req: Request, res: Response) => {
-        try {
-            const { id } = req.params;
-            const parseData = UpdateBookingDTO.safeParse(req.body);
-            if (!parseData.success) {
-                return res.status(400).json({
-                    success: false,
-                    message: z.prettifyError(parseData.error),
-                });
-            }
+    await AuditLogModel.create({
+      userId,
+      action: "BOOKING_CANCELLED",
+      targetType: "Booking",
+      targetId: bookingDoc._id.toString(),
+      ipAddress: req.ip || "unknown",
+      metadata: {},
+      timestamp: new Date(),
+    });
 
-            const bookingData = await bookingService.getBookingById(id);
-            const user = req.user as { _id?: string; role?: string } | undefined;
-            const isOwner = user?._id && String((bookingData.booking as any).userId?._id || (bookingData.booking as any).userId) === String(user._id);
-            const isAdmin = user?.role === "admin";
+    res.status(200).json({ message: "Booking cancelled", booking: bookingDoc });
+  } catch {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
 
-            if (!isOwner && !isAdmin) {
-                return res.status(403).json({ success: false, message: "Forbidden" });
-            }
-
-            const updated = await bookingService.updateBooking(id, parseData.data as any);
-            return res.status(200).json({
-                success: true,
-                message: "Booking updated successfully",
-                data: updated,
-            });
-        } catch (error: Error | any) {
-            return res.status(error.statusCode ?? 500).json({
-                success: false,
-                message: error.message || "Failed to update booking",
-            });
-        }
-    };
-}
+// GET /api/admin/bookings — admin view all
+export const adminGetAllBookings = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const bookings = await BookingModel.find()
+      .populate("userId", "name email")
+      .populate("accommodationId", "title")
+      .populate("hostId", "name email")
+      .sort({ createdAt: -1 });
+    res.status(200).json({ bookings });
+  } catch {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};

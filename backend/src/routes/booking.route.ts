@@ -1,17 +1,21 @@
 import { Router } from "express";
-import { BookingController } from "../controllers/booking.controller";
-import { authorizedMiddleware } from "../middleware/authorization.middleware";
+import {
+  createBooking,
+  getMyBookings,
+  getHostBookings,
+  getBookingById,
+  cancelBooking,
+  adminGetAllBookings,
+} from "../controllers/booking.controller";
+import { requireAuth, requireRole } from "../middleware/auth.middleware";
 
 const router = Router();
-const bookingController = new BookingController();
 
-router.post("/", authorizedMiddleware, bookingController.createBooking);
-router.get("/my-bookings", authorizedMiddleware, bookingController.getMyBookings);
-router.get("/all", authorizedMiddleware, bookingController.getAllBookings);
-router.get("/:id", authorizedMiddleware, bookingController.getBookingById);
-router.patch("/:id/cancel", authorizedMiddleware, bookingController.cancelBooking);
-router.patch("/:id", authorizedMiddleware, bookingController.updateBooking);
-router.patch("/:id/status", authorizedMiddleware, bookingController.updateBookingStatuses);
-router.delete("/:id", authorizedMiddleware, bookingController.deleteBooking);
+router.post("/", requireAuth, requireRole("traveler"), createBooking);
+router.get("/my", requireAuth, requireRole("traveler"), getMyBookings);
+router.get("/host", requireAuth, requireRole("host"), getHostBookings);
+router.get("/admin/all", requireAuth, requireRole("admin"), adminGetAllBookings);
+router.get("/:id", requireAuth, getBookingById);
+router.put("/:id/cancel", requireAuth, cancelBooking);
 
 export default router;

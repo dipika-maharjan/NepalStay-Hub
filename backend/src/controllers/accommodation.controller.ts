@@ -6,7 +6,10 @@ import { AuditLogModel } from "../models/auditLog.model";
 import { AuthRequest } from "../middleware/auth.middleware";
 
 // GET /api/accommodations — public
-export const getAccommodations = async (req: Request, res: Response): Promise<void> => {
+export const getAccommodations = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
@@ -21,8 +24,12 @@ export const getAccommodations = async (req: Request, res: Response): Promise<vo
     if (type) filter.type = type;
     if (minPrice || maxPrice) {
       filter.pricePerNight = {};
-      if (minPrice) (filter.pricePerNight as Record<string, unknown>).$gte = Number(minPrice);
-      if (maxPrice) (filter.pricePerNight as Record<string, unknown>).$lte = Number(maxPrice);
+      if (minPrice)
+        (filter.pricePerNight as Record<string, unknown>).$gte =
+          Number(minPrice);
+      if (maxPrice)
+        (filter.pricePerNight as Record<string, unknown>).$lte =
+          Number(maxPrice);
     }
 
     const accommodations = await AccommodationModel.find(filter)
@@ -43,7 +50,10 @@ export const getAccommodations = async (req: Request, res: Response): Promise<vo
 };
 
 // GET /api/accommodations/:id — public
-export const getAccommodationById = async (req: Request, res: Response): Promise<void> => {
+export const getAccommodationById = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const accommodation = await AccommodationModel.findOne({
       _id: req.params.id,
@@ -56,8 +66,14 @@ export const getAccommodationById = async (req: Request, res: Response): Promise
       return;
     }
 
-    const roomTypes = await RoomTypeModel.find({ accommodationId: accommodation._id, isActive: true });
-    const extras = await OptionalExtraModel.find({ accommodationId: accommodation._id, isActive: true });
+    const roomTypes = await RoomTypeModel.find({
+      accommodationId: accommodation._id,
+      isActive: true,
+    });
+    const extras = await OptionalExtraModel.find({
+      accommodationId: accommodation._id,
+      isActive: true,
+    });
 
     res.status(200).json({ accommodation, roomTypes, extras });
   } catch {
@@ -66,20 +82,43 @@ export const getAccommodationById = async (req: Request, res: Response): Promise
 };
 
 // POST /api/accommodations — host only + verified
-export const createAccommodation = async (req: Request, res: Response): Promise<void> => {
+export const createAccommodation = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const authReq = req as AuthRequest;
     const hostId = authReq.user?.userId;
-    const { title, description, type, address, location, pricePerNight, maxGuests, bedrooms, bathrooms, amenities } = req.body;
+    const {
+      title,
+      description,
+      type,
+      address,
+      location,
+      pricePerNight,
+      maxGuests,
+      bedrooms,
+      bathrooms,
+      amenities,
+    } = req.body;
 
-    if (!title || !description || !type || !address || !location || !pricePerNight || !maxGuests) {
+    if (
+      !title ||
+      !description ||
+      !type ||
+      !address ||
+      !location ||
+      !pricePerNight ||
+      !maxGuests
+    ) {
       res.status(400).json({ message: "Required fields missing" });
       return;
     }
 
-    const images = (req.files as Express.Multer.File[])?.map(
-      (f) => `/uploads/accommodations/${f.filename}`,
-    ) || [];
+    const images =
+      (req.files as Express.Multer.File[])?.map(
+        (f) => `/uploads/accommodations/${f.filename}`,
+      ) || [];
 
     const accommodation = await AccommodationModel.create({
       hostId,
@@ -108,25 +147,48 @@ export const createAccommodation = async (req: Request, res: Response): Promise<
       timestamp: new Date(),
     });
 
-    res.status(201).json({ message: "Accommodation created. Pending admin approval.", accommodation });
+    res
+      .status(201)
+      .json({
+        message: "Accommodation created. Pending admin approval.",
+        accommodation,
+      });
   } catch {
     res.status(500).json({ message: "Internal server error" });
   }
 };
 
 // PUT /api/accommodations/:id — host only, own listing
-export const updateAccommodation = async (req: Request, res: Response): Promise<void> => {
+export const updateAccommodation = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const authReq = req as AuthRequest;
     const hostId = authReq.user?.userId;
 
-    const existing = await AccommodationModel.findOne({ _id: req.params.id, hostId });
+    const existing = await AccommodationModel.findOne({
+      _id: req.params.id,
+      hostId,
+    });
     if (!existing) {
-      res.status(404).json({ message: "Accommodation not found or access denied" });
+      res
+        .status(404)
+        .json({ message: "Accommodation not found or access denied" });
       return;
     }
 
-    const allowedUpdates = ["title", "description", "address", "pricePerNight", "maxGuests", "bedrooms", "bathrooms", "amenities", "isActive"];
+    const allowedUpdates = [
+      "title",
+      "description",
+      "address",
+      "pricePerNight",
+      "maxGuests",
+      "bedrooms",
+      "bathrooms",
+      "amenities",
+      "isActive",
+    ];
     const updates: Record<string, unknown> = {};
     for (const key of allowedUpdates) {
       if (req.body[key] !== undefined) updates[key] = req.body[key];
@@ -150,20 +212,33 @@ export const updateAccommodation = async (req: Request, res: Response): Promise<
       timestamp: new Date(),
     });
 
-    res.status(200).json({ message: "Accommodation updated. Pending re-approval.", accommodation });
+    res
+      .status(200)
+      .json({
+        message: "Accommodation updated. Pending re-approval.",
+        accommodation,
+      });
   } catch {
     res.status(500).json({ message: "Internal server error" });
   }
 };
 
 // DELETE /api/accommodations/:id — host only, own listing
-export const deleteAccommodation = async (req: Request, res: Response): Promise<void> => {
+export const deleteAccommodation = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const authReq = req as AuthRequest;
     const hostId = authReq.user?.userId;
-    const accommodation = await AccommodationModel.findOneAndDelete({ _id: req.params.id, hostId });
+    const accommodation = await AccommodationModel.findOneAndDelete({
+      _id: req.params.id,
+      hostId,
+    });
     if (!accommodation) {
-      res.status(404).json({ message: "Accommodation not found or access denied" });
+      res
+        .status(404)
+        .json({ message: "Accommodation not found or access denied" });
       return;
     }
 
@@ -184,10 +259,15 @@ export const deleteAccommodation = async (req: Request, res: Response): Promise<
 };
 
 // GET /api/accommodations/my — host's own listings
-export const getMyAccommodations = async (req: Request, res: Response): Promise<void> => {
+export const getMyAccommodations = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const authReq = req as AuthRequest;
-    const accommodations = await AccommodationModel.find({ hostId: authReq.user?.userId }).sort({ createdAt: -1 });
+    const accommodations = await AccommodationModel.find({
+      hostId: authReq.user?.userId,
+    }).sort({ createdAt: -1 });
     res.status(200).json({ accommodations });
   } catch {
     res.status(500).json({ message: "Internal server error" });
@@ -195,7 +275,10 @@ export const getMyAccommodations = async (req: Request, res: Response): Promise<
 };
 
 // PUT /api/admin/accommodations/:id/approve — admin only
-export const adminApproveAccommodation = async (req: Request, res: Response): Promise<void> => {
+export const adminApproveAccommodation = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const accommodation = await AccommodationModel.findByIdAndUpdate(
       req.params.id,

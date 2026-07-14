@@ -1,4 +1,4 @@
-import { Response } from "express";
+import { Request, Response } from "express";
 import { HostVerificationModel } from "../models/hostVerification.model";
 import { UserModel } from "../models/user.model";
 import { AuditLogModel } from "../models/auditLog.model";
@@ -6,11 +6,12 @@ import { AuthRequest } from "../middleware/auth.middleware";
 
 // POST /api/host-verification/submit
 export const submitVerification = async (
-  req: AuthRequest,
+  req: Request,
   res: Response,
 ): Promise<void> => {
   try {
-    const userId = req.user?.userId;
+    const authReq = req as AuthRequest;
+    const userId = authReq.user?.userId;
     const { documentType } = req.body;
     const file = req.file;
 
@@ -71,12 +72,13 @@ export const submitVerification = async (
 
 // GET /api/host-verification/status
 export const getVerificationStatus = async (
-  req: AuthRequest,
+  req: Request,
   res: Response,
 ): Promise<void> => {
   try {
+    const authReq = req as AuthRequest;
     const verification = await HostVerificationModel.findOne({
-      userId: req.user?.userId,
+      userId: authReq.user?.userId,
     }).select("-documentUrl");
 
     if (!verification) {
@@ -92,7 +94,7 @@ export const getVerificationStatus = async (
 
 // GET /api/admin/host-verifications
 export const getAllVerifications = async (
-  req: AuthRequest,
+  req: Request,
   res: Response,
 ): Promise<void> => {
   try {
@@ -110,15 +112,16 @@ export const getAllVerifications = async (
 
 // PUT /api/admin/host-verifications/:id/approve
 export const approveVerification = async (
-  req: AuthRequest,
+  req: Request,
   res: Response,
 ): Promise<void> => {
   try {
+    const authReq = req as AuthRequest;
     const verification = await HostVerificationModel.findByIdAndUpdate(
       req.params.id,
       {
         status: "approved",
-        reviewedBy: req.user?.userId,
+        reviewedBy: authReq.user?.userId,
         reviewedAt: new Date(),
       },
       { new: true },
@@ -134,7 +137,7 @@ export const approveVerification = async (
     });
 
     await AuditLogModel.create({
-      userId: req.user?.userId,
+      userId: authReq.user?.userId,
       action: "HOST_VERIFICATION_APPROVED",
       targetType: "HostVerification",
       targetId: verification._id.toString(),
@@ -151,10 +154,11 @@ export const approveVerification = async (
 
 // PUT /api/admin/host-verifications/:id/reject
 export const rejectVerification = async (
-  req: AuthRequest,
+  req: Request,
   res: Response,
 ): Promise<void> => {
   try {
+    const authReq = req as AuthRequest;
     const { reason } = req.body;
     if (!reason) {
       res.status(400).json({ message: "Rejection reason is required" });
@@ -166,7 +170,7 @@ export const rejectVerification = async (
       {
         status: "rejected",
         rejectionReason: reason,
-        reviewedBy: req.user?.userId,
+        reviewedBy: authReq.user?.userId,
         reviewedAt: new Date(),
       },
       { new: true },
@@ -178,7 +182,7 @@ export const rejectVerification = async (
     }
 
     await AuditLogModel.create({
-      userId: req.user?.userId,
+      userId: authReq.user?.userId,
       action: "HOST_VERIFICATION_REJECTED",
       targetType: "HostVerification",
       targetId: verification._id.toString(),

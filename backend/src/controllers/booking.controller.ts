@@ -6,11 +6,22 @@ import { AuditLogModel } from "../models/auditLog.model";
 import { AuthRequest } from "../middleware/auth.middleware";
 
 // POST /api/bookings
-export const createBooking = async (req: Request, res: Response): Promise<void> => {
+export const createBooking = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const authReq = req as AuthRequest;
     const travelerId = authReq.user?.userId;
-    const { accommodationId, roomTypeId, checkIn, checkOut, guests, specialRequest, extrasTotal } = req.body;
+    const {
+      accommodationId,
+      roomTypeId,
+      checkIn,
+      checkOut,
+      guests,
+      specialRequest,
+      extrasTotal,
+    } = req.body;
 
     if (!accommodationId || !roomTypeId || !checkIn || !checkOut || !guests) {
       res.status(400).json({ message: "Required fields missing" });
@@ -27,7 +38,11 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    const roomType = await RoomTypeModel.findOne({ _id: roomTypeId, accommodationId, isActive: true });
+    const roomType = await RoomTypeModel.findOne({
+      _id: roomTypeId,
+      accommodationId,
+      isActive: true,
+    });
     if (!roomType) {
       res.status(404).json({ message: "Room type not found" });
       return;
@@ -48,7 +63,11 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
     }
 
     if (Number(guests) > roomType.maxGuests) {
-      res.status(400).json({ message: `Maximum ${roomType.maxGuests} guests allowed for this room` });
+      res
+        .status(400)
+        .json({
+          message: `Maximum ${roomType.maxGuests} guests allowed for this room`,
+        });
       return;
     }
 
@@ -59,12 +78,17 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
     });
 
     if (conflict) {
-      res.status(409).json({ message: "Room not available for selected dates" });
+      res
+        .status(409)
+        .json({ message: "Room not available for selected dates" });
       return;
     }
 
-    const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
-    const totalPrice = (roomType.pricePerNight * nights) + Number(extrasTotal || 0);
+    const nights = Math.ceil(
+      (checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24),
+    );
+    const totalPrice =
+      roomType.pricePerNight * nights + Number(extrasTotal || 0);
 
     const booking = await BookingModel.create({
       userId: travelerId,
@@ -104,7 +128,10 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
 };
 
 // GET /api/bookings/my — traveler's own bookings only (IDOR protected)
-export const getMyBookings = async (req: Request, res: Response): Promise<void> => {
+export const getMyBookings = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const authReq = req as AuthRequest;
     const bookings = await BookingModel.find({ userId: authReq.user?.userId })
@@ -118,7 +145,10 @@ export const getMyBookings = async (req: Request, res: Response): Promise<void> 
 };
 
 // GET /api/bookings/host — host's incoming bookings
-export const getHostBookings = async (req: Request, res: Response): Promise<void> => {
+export const getHostBookings = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const authReq = req as AuthRequest;
     const bookings = await BookingModel.find({ hostId: authReq.user?.userId })
@@ -133,7 +163,10 @@ export const getHostBookings = async (req: Request, res: Response): Promise<void
 };
 
 // GET /api/bookings/:id — IDOR: only traveler or host of this booking
-export const getBookingById = async (req: Request, res: Response): Promise<void> => {
+export const getBookingById = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const authReq = req as AuthRequest;
     const userId = authReq.user?.userId;
@@ -156,7 +189,10 @@ export const getBookingById = async (req: Request, res: Response): Promise<void>
 };
 
 // PUT /api/bookings/:id/cancel
-export const cancelBooking = async (req: Request, res: Response): Promise<void> => {
+export const cancelBooking = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const authReq = req as AuthRequest;
     const userId = authReq.user?.userId;
@@ -172,7 +208,9 @@ export const cancelBooking = async (req: Request, res: Response): Promise<void> 
 
     const bookingDoc = booking as any;
     if (!["pending", "confirmed"].includes(bookingDoc.bookingStatus)) {
-      res.status(400).json({ message: "Booking cannot be cancelled in its current state" });
+      res
+        .status(400)
+        .json({ message: "Booking cannot be cancelled in its current state" });
       return;
     }
 
@@ -196,7 +234,10 @@ export const cancelBooking = async (req: Request, res: Response): Promise<void> 
 };
 
 // GET /api/admin/bookings — admin view all
-export const adminGetAllBookings = async (req: Request, res: Response): Promise<void> => {
+export const adminGetAllBookings = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const bookings = await BookingModel.find()
       .populate("userId", "name email")

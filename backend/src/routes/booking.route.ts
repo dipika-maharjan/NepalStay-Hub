@@ -14,7 +14,12 @@ const router = Router();
 router.post("/", requireAuth, requireRole("traveler"), createBooking);
 router.get("/my", requireAuth, requireRole("traveler"), getMyBookings);
 router.get("/host", requireAuth, requireRole("host"), getHostBookings);
-router.get("/admin/all", requireAuth, requireRole("admin"), adminGetAllBookings);
+router.get(
+  "/admin/all",
+  requireAuth,
+  requireRole("admin"),
+  adminGetAllBookings,
+);
 router.get("/:id", requireAuth, getBookingById);
 router.put("/:id/cancel", requireAuth, cancelBooking);
 

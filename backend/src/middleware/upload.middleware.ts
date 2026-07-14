@@ -21,7 +21,11 @@ const createStorage = (folder: string) =>
     },
   });
 
-const fileFilter = (_req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
+const fileFilter = (
+  _req: Request,
+  file: Express.Multer.File,
+  cb: FileFilterCallback,
+) => {
   if (ALLOWED_MIME_TYPES.includes(file.mimetype)) {
     cb(null, true);
   } else {
@@ -55,6 +59,8 @@ export const profileUpload = multer({
 
 export const uploads = {
   single: (fieldName: string) => baseUpload.single(fieldName),
-  array: (fieldName: string, maxCount: number) => baseUpload.array(fieldName, maxCount),
-  fields: (fieldsArray: { name: string; maxCount?: number }[]) => baseUpload.fields(fieldsArray),
+  array: (fieldName: string, maxCount: number) =>
+    baseUpload.array(fieldName, maxCount),
+  fields: (fieldsArray: { name: string; maxCount?: number }[]) =>
+    baseUpload.fields(fieldsArray),
 };

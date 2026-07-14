@@ -1,368 +1,224 @@
 import { Request, Response } from "express";
-import { AccommodationService } from "../services/accommodation.service";
-import { CreateAccommodationDTO, UpdateAccommodationDTO } from "../dtos/accommodation.dto";
-import z from "zod";
+import { AccommodationModel } from "../models/accommodation.model";
+import { RoomTypeModel } from "../models/roomType.model";
+import { OptionalExtraModel } from "../models/optionalExtra.model";
+import { AuditLogModel } from "../models/auditLog.model";
+import { AuthRequest } from "../middleware/auth.middleware";
 
-const accommodationService = new AccommodationService();
+// GET /api/accommodations — public
+export const getAccommodations = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+    const { type, minPrice, maxPrice } = req.query;
 
-export class AccommodationController {
-    private parseFormData = (body: any) => {
-        const parsed: any = { ...body };
-        
-        // Parse JSON string fields from FormData
-        if (parsed.location && typeof parsed.location === 'string') {
-            parsed.location = JSON.parse(parsed.location);
-        }
-        if (parsed.amenities && typeof parsed.amenities === 'string') {
-            try {
-                parsed.amenities = JSON.parse(parsed.amenities);
-            } catch (e) {
-                parsed.amenities = [];
-            }
-        }
-        if (parsed.ecoFriendlyHighlights && typeof parsed.ecoFriendlyHighlights === 'string') {
-            try {
-                parsed.ecoFriendlyHighlights = JSON.parse(parsed.ecoFriendlyHighlights);
-            } catch (e) {
-                parsed.ecoFriendlyHighlights = [];
-            }
-        }
-        
-        // Handle images - can be string, array of strings, or array with JSON at end
-        if (parsed.images) {
-            if (typeof parsed.images === 'string') {
-                try {
-                    const parsedImages = JSON.parse(parsed.images);
-                    // Ensure it's always an array of strings
-                    if (Array.isArray(parsedImages)) {
-                        parsed.images = parsedImages.filter((img: any) => typeof img === 'string' && img.trim() !== '');
-                    } else {
-                        // If parsed to non-array, set to empty array
-                        parsed.images = [];
-                    }
-                } catch (e) {
-                    // If parsing fails, treat as a single URL string
-                    parsed.images = parsed.images.trim() ? [parsed.images] : [];
-                }
-            } else if (Array.isArray(parsed.images)) {
-                parsed.images = parsed.images.flatMap((img: any) => {
-                    if (typeof img === 'string') {
-                        try {
-                            // Try to parse as JSON first (array of URLs)
-                            const parsed_img = JSON.parse(img);
-                            if (Array.isArray(parsed_img)) {
-                                return parsed_img.filter((i: any) => typeof i === 'string' && i.trim() !== '');
-                            }
-                            return [];
-                        } catch (e) {
-                            // If not JSON, treat as URL string
-                            return img.trim() ? [img] : [];
-                        }
-                    }
-                    return [];
-                }).filter((img: any) => typeof img === 'string' && img.trim() !== '');
-            } else {
-                // If images is neither string nor array, set to empty array
-                parsed.images = [];
-            }
-        } else {
-            // If images field doesn't exist, set to empty array
-            parsed.images = [];
-        }
-        
-        // Convert price to number
-        if (parsed.pricePerNight && typeof parsed.pricePerNight === 'string') {
-            parsed.pricePerNight = Number(parsed.pricePerNight);
-        }
-        
-        // Convert boolean fields
-        if (typeof parsed.isActive === 'string') {
-            parsed.isActive = parsed.isActive === 'true';
-        }
-        
-        // Final safety check: ensure images is always an array of strings
-        if (!Array.isArray(parsed.images)) {
-            parsed.images = [];
-        }
-        parsed.images = parsed.images.filter((img: any) => 
-            typeof img === 'string' && img.trim() !== ''
-        );
-        
-        // Final safety check: ensure amenities is always an array of strings
-        if (!Array.isArray(parsed.amenities)) {
-            parsed.amenities = [];
-        }
-        parsed.amenities = parsed.amenities.filter((item: any) => 
-            typeof item === 'string' && item.trim() !== ''
-        );
-        
-        // Final safety check: ensure ecoFriendlyHighlights is always an array of strings
-        if (!Array.isArray(parsed.ecoFriendlyHighlights)) {
-            parsed.ecoFriendlyHighlights = [];
-        }
-        parsed.ecoFriendlyHighlights = parsed.ecoFriendlyHighlights.filter((item: any) => 
-            typeof item === 'string' && item.trim() !== ''
-        );
-        
-        return parsed;
+    const filter: Record<string, unknown> = {
+      isActive: true,
+      isApprovedByAdmin: true,
     };
 
-    createAccommodation = async (req: Request, res: Response) => {
-        try {
-            console.log('=== CREATE ACCOMMODATION ===');
-            console.log('Request body keys:', Object.keys(req.body));
-            console.log('Request files present?', !!req.files);
-            console.log('Request files type:', typeof req.files);
-            console.log('Request files:', req.files);
-            const filesArray = Array.isArray(req.files) ? req.files : (req.files ? Object.values(req.files).flat() : []);
-            console.log('Files array:', filesArray);
-            console.log('Files count:', filesArray.length);
-            filesArray.forEach((file: any, idx: number) => {
-                console.log(`  File ${idx}:`, file.fieldname, file.originalname, file.filename, file.size);
-            });
-            
-            const parsedBody = this.parseFormData(req.body);
-            console.log('Parsed body images:', parsedBody.images);
-            
-            const parseData = CreateAccommodationDTO.safeParse(parsedBody);
-            if (!parseData.success) {
-                console.log('Validation error:', z.prettifyError(parseData.error));
-                return res.status(400).json({
-                    success: false,
-                    message: z.prettifyError(parseData.error),
-                });
-            }
-
-            const adminId = (req.user as { _id?: string } | undefined)?._id;
-            if (!adminId) {
-                return res.status(401).json({
-                    success: false,
-                    message: "Unauthorized",
-                });
-            }
-
-            // Handle uploaded images
-            const uploadedImages = (req.files as Express.Multer.File[])?.map(
-                (file) => `/uploads/${file.filename}`
-            ) || [];
-            
-            console.log('Uploaded image paths:', uploadedImages);
-            
-            // Merge uploaded images with URL-based images from body
-            const existingImages = parseData.data.images || [];
-            console.log('Images from parsed body:', existingImages);
-            
-            const allImages = [...uploadedImages, ...existingImages];
-            console.log('Final merged images:', allImages);
-
-            const newAccommodation = await accommodationService.createAccommodation({
-                ...parseData.data,
-                images: allImages,
-                createdBy: adminId,
-            });
-            
-            console.log('Accommodation created with images:', newAccommodation.images);
-            
-            return res.status(201).json({
-                success: true,
-                message: "Accommodation created successfully",
-                data: newAccommodation,
-            });
-        } catch (error: Error | any) {
-            console.log('Error creating accommodation:', error.message);
-            return res.status(error.statusCode ?? 500).json({
-                success: false,
-                message: error.message || "Internal server error",
-            });
-        }
+    if (type) filter.type = type;
+    if (minPrice || maxPrice) {
+      filter.pricePerNight = {};
+      if (minPrice) (filter.pricePerNight as Record<string, unknown>).$gte = Number(minPrice);
+      if (maxPrice) (filter.pricePerNight as Record<string, unknown>).$lte = Number(maxPrice);
     }
 
-    getAccommodationById = async (req: Request, res: Response) => {
-        try {
-            const { id } = req.params;
-            const accommodation = await accommodationService.getAccommodationById(id);
-            console.log('Fetching accommodation by ID:', id);
-            console.log('Accommodation images:', accommodation.images);
-            return res.status(200).json({
-                success: true,
-                data: accommodation,
-            });
-        } catch (error: Error | any) {
-            return res.status(error.statusCode ?? 500).json({
-                success: false,
-                message: error.message || "Internal server error",
-            });
-        }
-    };
+    const accommodations = await AccommodationModel.find(filter)
+      .populate("hostId", "name profileImage")
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 });
 
-    getAllAccommodations = async (req: Request, res: Response) => {
-        try {
-            const accommodations = await accommodationService.getAllAccommodations();
-            console.log('Fetching all accommodations, count:', accommodations.length);
-            if (accommodations.length > 0) {
-                console.log('First accommodation images:', accommodations[0].images);
-            }
-            return res.status(200).json({
-                success: true,
-                data: accommodations,
-            });
-        } catch (error: Error | any) {
-            return res.status(error.statusCode ?? 500).json({
-                success: false,
-                message: error.message || "Internal server error",
-            });
-        }
-    };
+    const total = await AccommodationModel.countDocuments(filter);
 
-    getActiveAccommodations = async (req: Request, res: Response) => {
-        try {
-            const accommodations = await accommodationService.getActiveAccommodations();
-            return res.status(200).json({
-                success: true,
-                data: accommodations,
-            });
-        } catch (error: Error | any) {
-            return res.status(error.statusCode ?? 500).json({
-                success: false,
-                message: error.message || "Internal server error",
-            });
-        }
-    };
+    res.status(200).json({
+      accommodations,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    });
+  } catch {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
 
-    updateAccommodation = async (req: Request, res: Response) => {
-        try {
-            const { id } = req.params;
-            console.log('=== UPDATE ACCOMMODATION ===');
-            console.log('Accommodation ID:', id);
-            console.log('Request body raw (selected fields):', {
-                name: req.body.name,
-                isActive: req.body.isActive,
-                isActiveType: typeof req.body.isActive,
-            });
-            console.log('Request files present?', !!req.files);
-            const filesArray = Array.isArray(req.files) ? req.files : (req.files ? Object.values(req.files).flat() : []);
-            console.log('Files count:', filesArray.length);
-            filesArray.forEach((file: any, idx: number) => {
-                console.log(`  File ${idx}:`, file.fieldname, file.originalname, file.filename);
-            });
-            
-            const parsedBody = this.parseFormData(req.body);
-            console.log('Parsed isActive:', parsedBody.isActive, 'type:', typeof parsedBody.isActive);
-            const parseData = UpdateAccommodationDTO.safeParse(parsedBody);
-            if (!parseData.success) {
-                console.log('DTO validation error:', z.prettifyError(parseData.error));
-                return res.status(400).json({
-                    success: false,
-                    message: z.prettifyError(parseData.error),
-                });
-            }
+// GET /api/accommodations/:id — public
+export const getAccommodationById = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const accommodation = await AccommodationModel.findOne({
+      _id: req.params.id,
+      isActive: true,
+      isApprovedByAdmin: true,
+    }).populate("hostId", "name profileImage bio");
 
-            console.log('After DTO parse, isActive:', parseData.data.isActive);
-            // Handle uploaded images
-            const uploadedImages = (req.files as Express.Multer.File[])?.map(
-                (file) => `/uploads/${file.filename}`
-            ) || [];
-            
-            console.log('Uploaded images:', uploadedImages);
-            
-            // Merge uploaded images with existing URL-based images from body
-            const existingImages = parseData.data.images || [];
-            console.log('Existing images from body:', existingImages);
-            
-            const allImages = uploadedImages.length > 0 || existingImages.length > 0 
-                ? [...uploadedImages, ...existingImages] 
-                : undefined;
-            
-            console.log('Final images for update:', allImages);
-            console.log('Calling updateAccommodation with:', {
-                isActive: parseData.data.isActive,
-                updatePayload: {
-                    ...parseData.data,
-                    ...(allImages && { images: allImages })
-                }
-            });
+    if (!accommodation) {
+      res.status(404).json({ message: "Accommodation not found" });
+      return;
+    }
 
-            const updatedAccommodation = await accommodationService.updateAccommodation(
-                id,
-                {
-                    ...parseData.data,
-                    ...(allImages && { images: allImages })
-                }
-            );
-            return res.status(200).json({
-                success: true,
-                message: "Accommodation updated successfully",
-                data: updatedAccommodation,
-            });
-        } catch (error: Error | any) {
-            console.log('Update error:', error.message);
-            return res.status(error.statusCode ?? 500).json({
-                success: false,
-                message: error.message || "Internal server error",
-            });
-        }
-    };
+    const roomTypes = await RoomTypeModel.find({ accommodationId: accommodation._id, isActive: true });
+    const extras = await OptionalExtraModel.find({ accommodationId: accommodation._id, isActive: true });
 
-    deleteAccommodation = async (req: Request, res: Response) => {
-        try {
-            const { id } = req.params;
-            const result = await accommodationService.deleteAccommodation(id);
-            return res.status(200).json({
-                success: true,
-                message: result.message,
-            });
-        } catch (error: Error | any) {
-            return res.status(error.statusCode ?? 500).json({
-                success: false,
-                message: error.message || "Internal server error",
-            });
-        }
-    };
+    res.status(200).json({ accommodation, roomTypes, extras });
+  } catch {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
 
-    searchAccommodations = async (req: Request, res: Response) => {
-        try {
-            const { query } = req.query;
-            if (!query || typeof query !== "string") {
-                return res.status(400).json({
-                    success: false,
-                    message: "Search query is required",
-                });
-            }
-            const results = await accommodationService.searchAccommodations(query);
-            return res.status(200).json({
-                success: true,
-                data: results,
-            });
-        } catch (error: Error | any) {
-            return res.status(error.statusCode ?? 500).json({
-                success: false,
-                message: error.message || "Internal server error",
-            });
-        }
-    };
+// POST /api/accommodations — host only + verified
+export const createAccommodation = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const authReq = req as AuthRequest;
+    const hostId = authReq.user?.userId;
+    const { title, description, type, address, location, pricePerNight, maxGuests, bedrooms, bathrooms, amenities } = req.body;
 
-    getAccommodationsByPrice = async (req: Request, res: Response) => {
-        try {
-            const { minPrice, maxPrice } = req.query;
-            if (!minPrice || !maxPrice) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Min and max price are required",
-                });
-            }
-            const accommodations = await accommodationService.getAccommodationsByPriceRange(
-                parseFloat(minPrice as string),
-                parseFloat(maxPrice as string)
-            );
-            return res.status(200).json({
-                success: true,
-                data: accommodations,
-            });
-        } catch (error: Error | any) {
-            return res.status(error.statusCode ?? 500).json({
-                success: false,
-                message: error.message || "Internal server error",
-            });
-        }
-    };
-}
+    if (!title || !description || !type || !address || !location || !pricePerNight || !maxGuests) {
+      res.status(400).json({ message: "Required fields missing" });
+      return;
+    }
+
+    const images = (req.files as Express.Multer.File[])?.map(
+      (f) => `/uploads/accommodations/${f.filename}`,
+    ) || [];
+
+    const accommodation = await AccommodationModel.create({
+      hostId,
+      title: title.trim(),
+      description: description.trim(),
+      type,
+      address: address.trim(),
+      location: JSON.parse(location),
+      pricePerNight: Number(pricePerNight),
+      maxGuests: Number(maxGuests),
+      bedrooms: Number(bedrooms) || 0,
+      bathrooms: Number(bathrooms) || 0,
+      amenities: amenities ? JSON.parse(amenities) : [],
+      images,
+      isActive: true,
+      isApprovedByAdmin: false,
+    });
+
+    await AuditLogModel.create({
+      userId: hostId,
+      action: "ACCOMMODATION_CREATED",
+      targetType: "Accommodation",
+      targetId: accommodation._id.toString(),
+      ipAddress: req.ip || "unknown",
+      metadata: { title },
+      timestamp: new Date(),
+    });
+
+    res.status(201).json({ message: "Accommodation created. Pending admin approval.", accommodation });
+  } catch {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// PUT /api/accommodations/:id — host only, own listing
+export const updateAccommodation = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const authReq = req as AuthRequest;
+    const hostId = authReq.user?.userId;
+
+    const existing = await AccommodationModel.findOne({ _id: req.params.id, hostId });
+    if (!existing) {
+      res.status(404).json({ message: "Accommodation not found or access denied" });
+      return;
+    }
+
+    const allowedUpdates = ["title", "description", "address", "pricePerNight", "maxGuests", "bedrooms", "bathrooms", "amenities", "isActive"];
+    const updates: Record<string, unknown> = {};
+    for (const key of allowedUpdates) {
+      if (req.body[key] !== undefined) updates[key] = req.body[key];
+    }
+
+    updates.isApprovedByAdmin = false;
+
+    const accommodation = await AccommodationModel.findByIdAndUpdate(
+      req.params.id,
+      { $set: updates },
+      { new: true, runValidators: true },
+    );
+
+    await AuditLogModel.create({
+      userId: hostId,
+      action: "ACCOMMODATION_UPDATED",
+      targetType: "Accommodation",
+      targetId: req.params.id,
+      ipAddress: req.ip || "unknown",
+      metadata: { updatedFields: Object.keys(updates) },
+      timestamp: new Date(),
+    });
+
+    res.status(200).json({ message: "Accommodation updated. Pending re-approval.", accommodation });
+  } catch {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// DELETE /api/accommodations/:id — host only, own listing
+export const deleteAccommodation = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const authReq = req as AuthRequest;
+    const hostId = authReq.user?.userId;
+    const accommodation = await AccommodationModel.findOneAndDelete({ _id: req.params.id, hostId });
+    if (!accommodation) {
+      res.status(404).json({ message: "Accommodation not found or access denied" });
+      return;
+    }
+
+    await AuditLogModel.create({
+      userId: hostId,
+      action: "ACCOMMODATION_DELETED",
+      targetType: "Accommodation",
+      targetId: req.params.id,
+      ipAddress: req.ip || "unknown",
+      metadata: {},
+      timestamp: new Date(),
+    });
+
+    res.status(200).json({ message: "Accommodation deleted" });
+  } catch {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// GET /api/accommodations/my — host's own listings
+export const getMyAccommodations = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const authReq = req as AuthRequest;
+    const accommodations = await AccommodationModel.find({ hostId: authReq.user?.userId }).sort({ createdAt: -1 });
+    res.status(200).json({ accommodations });
+  } catch {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// PUT /api/admin/accommodations/:id/approve — admin only
+export const adminApproveAccommodation = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const accommodation = await AccommodationModel.findByIdAndUpdate(
+      req.params.id,
+      { isApprovedByAdmin: true },
+      { new: true },
+    );
+    if (!accommodation) {
+      res.status(404).json({ message: "Accommodation not found" });
+      return;
+    }
+
+    await AuditLogModel.create({
+      userId: (req as AuthRequest).user?.userId,
+      action: "ADMIN_ACTION",
+      targetType: "Accommodation",
+      targetId: req.params.id,
+      ipAddress: req.ip || "unknown",
+      metadata: { action: "accommodation_approved" },
+      timestamp: new Date(),
+    });
+
+    res.status(200).json({ message: "Accommodation approved", accommodation });
+  } catch {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};

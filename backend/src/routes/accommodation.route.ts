@@ -1,21 +1,29 @@
 import { Router } from "express";
-import { AccommodationController } from "../controllers/accommodation.controller";
-import { authorizedMiddleware, adminOnlyMiddleware } from "../middleware/authorization.middleware";
-import { uploads } from "../middleware/upload.middleware";
+import {
+  getAccommodations,
+  getAccommodationById,
+  createAccommodation,
+  updateAccommodation,
+  deleteAccommodation,
+  getMyAccommodations,
+  adminApproveAccommodation,
+} from "../controllers/accommodation.controller";
+import { requireAuth, requireRole, requireHostVerified } from "../middleware/auth.middleware";
+import { accommodationUpload } from "../middleware/upload.middleware";
 
-const accommodationController = new AccommodationController();
 const router = Router();
 
 // Public routes
-router.get("/active", accommodationController.getActiveAccommodations);
-router.get("/search", accommodationController.searchAccommodations);
-router.get("/price-range", accommodationController.getAccommodationsByPrice);
-router.get("/:id", accommodationController.getAccommodationById);
-router.get("/", accommodationController.getAllAccommodations);
+router.get("/", getAccommodations);
+router.get("/my", requireAuth, requireRole("host"), getMyAccommodations);
+router.get("/:id", getAccommodationById);
 
-// Admin routes (protected with authorization middleware)
-router.post("/", authorizedMiddleware, adminOnlyMiddleware, uploads.array('images', 10), accommodationController.createAccommodation);
-router.put("/:id", authorizedMiddleware, adminOnlyMiddleware, uploads.array('images', 10), accommodationController.updateAccommodation);
-router.delete("/:id", authorizedMiddleware, adminOnlyMiddleware, accommodationController.deleteAccommodation);
+// Host only — must be verified
+router.post("/", requireAuth, requireRole("host"), requireHostVerified, accommodationUpload.array("images", 10), createAccommodation);
+router.put("/:id", requireAuth, requireRole("host"), requireHostVerified, updateAccommodation);
+router.delete("/:id", requireAuth, requireRole("host"), deleteAccommodation);
+
+// Admin only
+router.put("/admin/:id/approve", requireAuth, requireRole("admin"), adminApproveAccommodation);
 
 export default router;

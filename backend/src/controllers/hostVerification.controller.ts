@@ -27,7 +27,9 @@ export const submitVerification = async (
 
     const existing = await HostVerificationModel.findOne({ userId });
     if (existing && existing.status === "pending") {
-      res.status(409).json({ message: "Verification already submitted and pending review" });
+      res
+        .status(409)
+        .json({ message: "Verification already submitted and pending review" });
       return;
     }
 
@@ -59,7 +61,8 @@ export const submitVerification = async (
     });
 
     res.status(201).json({
-      message: "Verification submitted successfully. Admin will review shortly.",
+      message:
+        "Verification submitted successfully. Admin will review shortly.",
     });
   } catch {
     res.status(500).json({ message: "Internal server error" });
@@ -72,8 +75,9 @@ export const getVerificationStatus = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const verification = await HostVerificationModel.findOne({ userId: req.user?.userId })
-      .select("-documentUrl");
+    const verification = await HostVerificationModel.findOne({
+      userId: req.user?.userId,
+    }).select("-documentUrl");
 
     if (!verification) {
       res.status(404).json({ message: "No verification record found" });
@@ -112,7 +116,11 @@ export const approveVerification = async (
   try {
     const verification = await HostVerificationModel.findByIdAndUpdate(
       req.params.id,
-      { status: "approved", reviewedBy: req.user?.userId, reviewedAt: new Date() },
+      {
+        status: "approved",
+        reviewedBy: req.user?.userId,
+        reviewedAt: new Date(),
+      },
       { new: true },
     );
 
@@ -121,7 +129,9 @@ export const approveVerification = async (
       return;
     }
 
-    await UserModel.findByIdAndUpdate(verification.userId, { isHostVerified: true });
+    await UserModel.findByIdAndUpdate(verification.userId, {
+      isHostVerified: true,
+    });
 
     await AuditLogModel.create({
       userId: req.user?.userId,

@@ -1,45 +1,60 @@
-import multer from "multer";
-import { v4 as uuidv4 } from "uuid";
+import multer, { FileFilterCallback } from "multer";
 import path from "path";
+import crypto from "crypto";
+import { Request } from "express";
 import fs from "fs";
 
-// Ensure the uploads directory exists
-// __dirname is the directory of the current module
-const uploadDir = path.join(__dirname, '../../uploads');
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-} 
+const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        console.log('Multer destination - file received:', file.fieldname, file.originalname);
-        cb(null, uploadDir);
+const createStorage = (folder: string) =>
+  multer.diskStorage({
+    destination: (_req, _file, cb) => {
+      const destination = path.join(__dirname, "../../uploads", folder);
+      fs.mkdirSync(destination, { recursive: true });
+      cb(null, destination);
     },
-    filename: function (req, file, cb) {
-        const uniqueSuffix = uuidv4();
-        const extension = path.extname(file.originalname);
-        const filename = `${file.fieldname}-${uniqueSuffix}${extension}`;
-        console.log('Multer filename assigned:', filename);
-        cb(null, filename);
-    }
-});
-const fileFilter = (req: Express.Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-    console.log('Multer fileFilter - checking file:', file.fieldname, file.mimetype);
-    if (!file.mimetype.startsWith('image/')) {
-        console.log('Multer fileFilter - rejecting non-image:', file.mimetype);
-        return cb(new Error('Only image files are allowed!'));
-    }
-    console.log('Multer fileFilter - accepting file');
+    filename: (_req, file, cb) => {
+      const randomName = crypto.randomBytes(16).toString("hex");
+      const ext = path.extname(file.originalname).toLowerCase();
+      cb(null, `${randomName}${ext}`);
+    },
+  });
+
+const fileFilter = (_req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
+  if (ALLOWED_MIME_TYPES.includes(file.mimetype)) {
     cb(null, true);
+  } else {
+    cb(new Error("Only JPEG, PNG and WebP images are allowed"));
+  }
 };
-const upload = multer({ 
-    storage: storage, 
-    fileFilter: fileFilter,
-    limits: { fileSize: 5 * 1024 * 1024 } // 5 MB file size limit
+
+const baseUpload = multer({
+  storage: createStorage("misc"),
+  fileFilter,
+  limits: { fileSize: MAX_FILE_SIZE },
+});
+
+export const verificationUpload = multer({
+  storage: createStorage("verification"),
+  fileFilter,
+  limits: { fileSize: MAX_FILE_SIZE },
+});
+
+export const accommodationUpload = multer({
+  storage: createStorage("accommodations"),
+  fileFilter,
+  limits: { fileSize: MAX_FILE_SIZE },
+});
+
+export const profileUpload = multer({
+  storage: createStorage("profiles"),
+  fileFilter,
+  limits: { fileSize: MAX_FILE_SIZE },
 });
 
 export const uploads = {
-    single: (fieldName: string) => upload.single(fieldName),
-    array: (fieldName: string, maxCount: number) => upload.array(fieldName, maxCount),
-    fields: (fieldsArray: { name: string; maxCount?: number }[]) => upload.fields(fieldsArray)
+  single: (fieldName: string) => baseUpload.single(fieldName),
+  array: (fieldName: string, maxCount: number) => baseUpload.array(fieldName, maxCount),
+  fields: (fieldsArray: { name: string; maxCount?: number }[]) => baseUpload.fields(fieldsArray),
 };

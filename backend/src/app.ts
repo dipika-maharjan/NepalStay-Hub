@@ -24,10 +24,7 @@ import {
 const app: Application = express();
 
 // Stripe webhook endpoint needs raw body. Register raw parser before JSON parser so signature can be verified
-app.use(
-  "/api/payments/webhook",
-  express.raw({ type: "application/json" }),
-);
+app.use("/api/payments/webhook", express.raw({ type: "application/json" }));
 
 // Configure JSON parser to skip multipart/form-data requests (handled by multer)
 app.use(

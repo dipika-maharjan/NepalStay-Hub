@@ -27,7 +27,7 @@ const logger = winston.createLogger({
 export const safeLog = (
   level: "info" | "warn" | "error",
   action: string,
-  metadata: Record<string, unknown> = {}
+  metadata: Record<string, unknown> = {},
 ): void => {
   const sensitiveFields = [
     "password",
@@ -42,8 +42,8 @@ export const safeLog = (
 
   const safe = Object.fromEntries(
     Object.entries(metadata).filter(
-      ([key]) => !sensitiveFields.includes(key.toLowerCase())
-    )
+      ([key]) => !sensitiveFields.includes(key.toLowerCase()),
+    ),
   );
 
   logger[level]({ action, metadata: safe });

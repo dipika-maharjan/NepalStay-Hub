@@ -1,17 +1,27 @@
 import { Router } from "express";
-import { OptionalExtraController } from "../controllers/optionalExtra.controller";
-import { authorizedMiddleware, adminOnlyMiddleware } from "../middleware/authorization.middleware";
+import {
+  getExtrasByAccommodation,
+  createExtra,
+  updateExtra,
+  deleteExtra,
+} from "../controllers/optionalExtra.controller";
+import {
+  requireAuth,
+  requireRole,
+  requireHostVerified,
+} from "../middleware/auth.middleware";
 
 const router = Router();
-const optionalExtraController = new OptionalExtraController();
 
-// Public routes
-router.get("/", optionalExtraController.getOptionalExtras);
-router.get("/:id", optionalExtraController.getOptionalExtraById);
-
-// Admin routes
-router.post("/", authorizedMiddleware, adminOnlyMiddleware, optionalExtraController.createOptionalExtra);
-router.put("/:id", authorizedMiddleware, adminOnlyMiddleware, optionalExtraController.updateOptionalExtra);
-router.delete("/:id", authorizedMiddleware, adminOnlyMiddleware, optionalExtraController.deleteOptionalExtra);
+router.get("/:accommodationId", getExtrasByAccommodation);
+router.post(
+  "/",
+  requireAuth,
+  requireRole("host"),
+  requireHostVerified,
+  createExtra,
+);
+router.put("/:id", requireAuth, requireRole("host"), updateExtra);
+router.delete("/:id", requireAuth, requireRole("host"), deleteExtra);
 
 export default router;

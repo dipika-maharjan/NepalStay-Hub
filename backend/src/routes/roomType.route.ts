@@ -1,17 +1,27 @@
 import { Router } from "express";
-import { RoomTypeController } from "../controllers/roomType.controller";
-import { authorizedMiddleware, adminOnlyMiddleware } from "../middleware/authorization.middleware";
+import {
+  getRoomTypesByAccommodation,
+  createRoomType,
+  updateRoomType,
+  deleteRoomType,
+} from "../controllers/roomType.controller";
+import {
+  requireAuth,
+  requireRole,
+  requireHostVerified,
+} from "../middleware/auth.middleware";
 
 const router = Router();
-const roomTypeController = new RoomTypeController();
 
-// Public routes
-router.get("/", roomTypeController.getRoomTypes);
-router.get("/:id", roomTypeController.getRoomTypeById);
-
-// Admin routes
-router.post("/", authorizedMiddleware, adminOnlyMiddleware, roomTypeController.createRoomType);
-router.put("/:id", authorizedMiddleware, adminOnlyMiddleware, roomTypeController.updateRoomType);
-router.delete("/:id", authorizedMiddleware, adminOnlyMiddleware, roomTypeController.deleteRoomType);
+router.get("/:accommodationId", getRoomTypesByAccommodation);
+router.post(
+  "/",
+  requireAuth,
+  requireRole("host"),
+  requireHostVerified,
+  createRoomType,
+);
+router.put("/:id", requireAuth, requireRole("host"), updateRoomType);
+router.delete("/:id", requireAuth, requireRole("host"), deleteRoomType);
 
 export default router;

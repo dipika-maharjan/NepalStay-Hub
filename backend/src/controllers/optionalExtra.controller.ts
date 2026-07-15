@@ -1,107 +1,174 @@
-import { Request, Response } from "express";
-import { OptionalExtraService } from "../services/optionalExtra.service";
-import { CreateOptionalExtraDTO, UpdateOptionalExtraDTO } from "../dtos/optionalExtra.dto";
-import z from "zod";
+import { Response } from "express";
+import { OptionalExtraModel } from "../models/optionalExtra.model";
+import { AccommodationModel } from "../models/accommodation.model";
+import { AuthRequest } from "../middleware/auth.middleware";
 
-const optionalExtraService = new OptionalExtraService();
+const getOwnedAccommodation = async (
+  req: AuthRequest,
+  res: Response,
+  accommodationId: string,
+) => {
+  const userId = req.user?.userId;
 
-export class OptionalExtraController {
-    createOptionalExtra = async (req: Request, res: Response) => {
-        try {
-            const parseData = CreateOptionalExtraDTO.safeParse(req.body);
-            if (!parseData.success) {
-                return res.status(400).json({
-                    success: false,
-                    message: z.prettifyError(parseData.error),
-                });
-            }
+  if (!userId) {
+    res.status(401).json({ message: "Authentication required", data: null });
+    return null;
+  }
 
-            const extra = await optionalExtraService.createOptionalExtra(parseData.data);
-            return res.status(201).json({
-                success: true,
-                message: "Optional extra created successfully",
-                data: extra,
-            });
-        } catch (error: Error | any) {
-            return res.status(error.statusCode ?? 500).json({
-                success: false,
-                message: error.message || "Failed to create optional extra",
-            });
-        }
-    };
+  const accommodation = await AccommodationModel.findById(accommodationId);
 
-    getOptionalExtraById = async (req: Request, res: Response) => {
-        try {
-            const { id } = req.params;
-            const extra = await optionalExtraService.getOptionalExtraById(id);
-            return res.status(200).json({ success: true, data: extra });
-        } catch (error: Error | any) {
-            return res.status(error.statusCode ?? 500).json({
-                success: false,
-                message: error.message || "Failed to fetch optional extra",
-            });
-        }
-    };
+  if (!accommodation) {
+    res.status(404).json({ message: "Accommodation not found", data: null });
+    return null;
+  }
 
-    getOptionalExtras = async (req: Request, res: Response) => {
-        try {
-            const { accommodationId, includeInactive } = req.query;
-            if (accommodationId) {
-                const extras = await optionalExtraService.getOptionalExtrasByAccommodation(
-                    String(accommodationId),
-                    includeInactive !== "true"
-                );
-                return res.status(200).json({ success: true, data: extras });
-            }
+  if (accommodation.hostId.toString() !== userId) {
+    res.status(403).json({ message: "Forbidden", data: null });
+    return null;
+  }
 
-            const extras = await optionalExtraService.getAllOptionalExtras();
-            return res.status(200).json({ success: true, data: extras });
-        } catch (error: Error | any) {
-            return res.status(error.statusCode ?? 500).json({
-                success: false,
-                message: error.message || "Failed to fetch optional extras",
-            });
-        }
-    };
+  return accommodation;
+};
 
-    updateOptionalExtra = async (req: Request, res: Response) => {
-        try {
-            const { id } = req.params;
-            const parseData = UpdateOptionalExtraDTO.safeParse(req.body);
-            if (!parseData.success) {
-                return res.status(400).json({
-                    success: false,
-                    message: z.prettifyError(parseData.error),
-                });
-            }
+export const getExtrasByAccommodation = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { accommodationId } = req.params;
+    const extras = await OptionalExtraModel.find({
+      accommodationId,
+      isActive: true,
+    }).sort({ createdAt: -1 });
 
-            const extra = await optionalExtraService.updateOptionalExtra(id, parseData.data);
-            return res.status(200).json({
-                success: true,
-                message: "Optional extra updated successfully",
-                data: extra,
-            });
-        } catch (error: Error | any) {
-            return res.status(error.statusCode ?? 500).json({
-                success: false,
-                message: error.message || "Failed to update optional extra",
-            });
-        }
-    };
+    res.status(200).json({
+      message: "Optional extras fetched successfully",
+      data: extras,
+    });
+  } catch {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
 
-    deleteOptionalExtra = async (req: Request, res: Response) => {
-        try {
-            const { id } = req.params;
-            const result = await optionalExtraService.deleteOptionalExtra(id);
-            return res.status(200).json({
-                success: true,
-                message: result.message,
-            });
-        } catch (error: Error | any) {
-            return res.status(error.statusCode ?? 500).json({
-                success: false,
-                message: error.message || "Failed to delete optional extra",
-            });
-        }
-    };
-}
+export const createExtra = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { accommodationId, name, description, price, priceType } =
+      req.body as Record<string, unknown>;
+
+    const accommodation = await getOwnedAccommodation(
+      req,
+      res,
+      accommodationId as string,
+    );
+
+    if (!accommodation) {
+      return;
+    }
+
+    const extra = await OptionalExtraModel.create({
+      accommodationId,
+      name,
+      description: description ?? null,
+      price,
+      priceType,
+      isActive: true,
+    });
+
+    res.status(201).json({
+      message: "Optional extra created successfully",
+      data: extra,
+    });
+  } catch {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const updateExtra = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const existingExtra = await OptionalExtraModel.findById(id);
+
+    if (!existingExtra) {
+      res.status(404).json({ message: "Optional extra not found", data: null });
+      return;
+    }
+
+    const accommodation = await getOwnedAccommodation(
+      req,
+      res,
+      existingExtra.accommodationId.toString(),
+    );
+
+    if (!accommodation) {
+      return;
+    }
+
+    const { name, description, price, priceType, isActive } =
+      req.body as Record<string, unknown>;
+
+    const updateData: Record<string, unknown> = {};
+
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (price !== undefined) updateData.price = price;
+    if (priceType !== undefined) updateData.priceType = priceType;
+    if (isActive !== undefined) updateData.isActive = isActive;
+
+    const updatedExtra = await OptionalExtraModel.findByIdAndUpdate(id, updateData, {
+      new: true,
+      runValidators: true,
+    });
+
+    res.status(200).json({
+      message: "Optional extra updated successfully",
+      data: updatedExtra,
+    });
+  } catch {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const deleteExtra = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const existingExtra = await OptionalExtraModel.findById(id);
+
+    if (!existingExtra) {
+      res.status(404).json({ message: "Optional extra not found", data: null });
+      return;
+    }
+
+    const accommodation = await getOwnedAccommodation(
+      req,
+      res,
+      existingExtra.accommodationId.toString(),
+    );
+
+    if (!accommodation) {
+      return;
+    }
+
+    const deletedExtra = await OptionalExtraModel.findByIdAndUpdate(
+      id,
+      { isActive: false },
+      { new: true },
+    );
+
+    res.status(200).json({
+      message: "Optional extra deleted successfully",
+      data: deletedExtra,
+    });
+  } catch {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+

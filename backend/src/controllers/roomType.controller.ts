@@ -1,107 +1,176 @@
-import { Request, Response } from "express";
-import { RoomTypeService } from "../services/roomType.service";
-import { CreateRoomTypeDTO, UpdateRoomTypeDTO } from "../dtos/roomType.dto";
-import z from "zod";
+import { Response } from "express";
+import { RoomTypeModel } from "../models/roomType.model";
+import { AccommodationModel } from "../models/accommodation.model";
+import { AuthRequest } from "../middleware/auth.middleware";
 
-const roomTypeService = new RoomTypeService();
+const getOwnedAccommodation = async (
+  req: AuthRequest,
+  res: Response,
+  accommodationId: string,
+) => {
+  const userId = req.user?.userId;
 
-export class RoomTypeController {
-    createRoomType = async (req: Request, res: Response) => {
-        try {
-            const parseData = CreateRoomTypeDTO.safeParse(req.body);
-            if (!parseData.success) {
-                return res.status(400).json({
-                    success: false,
-                    message: z.prettifyError(parseData.error),
-                });
-            }
+  if (!userId) {
+    res.status(401).json({ message: "Authentication required", data: null });
+    return null;
+  }
 
-            const roomType = await roomTypeService.createRoomType(parseData.data);
-            return res.status(201).json({
-                success: true,
-                message: "Room type created successfully",
-                data: roomType,
-            });
-        } catch (error: Error | any) {
-            return res.status(error.statusCode ?? 500).json({
-                success: false,
-                message: error.message || "Failed to create room type",
-            });
-        }
-    };
+  const accommodation = await AccommodationModel.findById(accommodationId);
 
-    getRoomTypeById = async (req: Request, res: Response) => {
-        try {
-            const { id } = req.params;
-            const roomType = await roomTypeService.getRoomTypeById(id);
-            return res.status(200).json({ success: true, data: roomType });
-        } catch (error: Error | any) {
-            return res.status(error.statusCode ?? 500).json({
-                success: false,
-                message: error.message || "Failed to fetch room type",
-            });
-        }
-    };
+  if (!accommodation) {
+    res.status(404).json({ message: "Accommodation not found", data: null });
+    return null;
+  }
 
-    getRoomTypes = async (req: Request, res: Response) => {
-        try {
-            const { accommodationId, includeInactive } = req.query;
-            if (accommodationId) {
-                const roomTypes = await roomTypeService.getRoomTypesByAccommodation(
-                    String(accommodationId),
-                    includeInactive !== "true"
-                );
-                return res.status(200).json({ success: true, data: roomTypes });
-            }
+  if (accommodation.hostId.toString() !== userId) {
+    res.status(403).json({ message: "Forbidden", data: null });
+    return null;
+  }
 
-            const roomTypes = await roomTypeService.getAllRoomTypes();
-            return res.status(200).json({ success: true, data: roomTypes });
-        } catch (error: Error | any) {
-            return res.status(error.statusCode ?? 500).json({
-                success: false,
-                message: error.message || "Failed to fetch room types",
-            });
-        }
-    };
+  return accommodation;
+};
 
-    updateRoomType = async (req: Request, res: Response) => {
-        try {
-            const { id } = req.params;
-            const parseData = UpdateRoomTypeDTO.safeParse(req.body);
-            if (!parseData.success) {
-                return res.status(400).json({
-                    success: false,
-                    message: z.prettifyError(parseData.error),
-                });
-            }
+export const getRoomTypesByAccommodation = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { accommodationId } = req.params;
+    const roomTypes = await RoomTypeModel.find({
+      accommodationId,
+      isActive: true,
+    }).sort({ createdAt: -1 });
 
-            const roomType = await roomTypeService.updateRoomType(id, parseData.data);
-            return res.status(200).json({
-                success: true,
-                message: "Room type updated successfully",
-                data: roomType,
-            });
-        } catch (error: Error | any) {
-            return res.status(error.statusCode ?? 500).json({
-                success: false,
-                message: error.message || "Failed to update room type",
-            });
-        }
-    };
+    res.status(200).json({
+      message: "Room types fetched successfully",
+      data: roomTypes,
+    });
+  } catch {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
 
-    deleteRoomType = async (req: Request, res: Response) => {
-        try {
-            const { id } = req.params;
-            const result = await roomTypeService.deleteRoomType(id);
-            return res.status(200).json({
-                success: true,
-                message: result.message,
-            });
-        } catch (error: Error | any) {
-            return res.status(error.statusCode ?? 500).json({
-                success: false,
-                message: error.message || "Failed to delete room type",
-            });
-        }
-    };
-}
+export const createRoomType = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { accommodationId, name, description, pricePerNight, maxGuests, totalRooms } =
+      req.body as Record<string, unknown>;
+
+    const accommodation = await getOwnedAccommodation(
+      req,
+      res,
+      accommodationId as string,
+    );
+
+    if (!accommodation) {
+      return;
+    }
+
+    const roomType = await RoomTypeModel.create({
+      accommodationId,
+      name,
+      description: description ?? null,
+      pricePerNight,
+      maxGuests,
+      totalRooms,
+      isActive: true,
+    });
+
+    res.status(201).json({
+      message: "Room type created successfully",
+      data: roomType,
+    });
+  } catch {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const updateRoomType = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const existingRoomType = await RoomTypeModel.findById(id);
+
+    if (!existingRoomType) {
+      res.status(404).json({ message: "Room type not found", data: null });
+      return;
+    }
+
+    const accommodation = await getOwnedAccommodation(
+      req,
+      res,
+      existingRoomType.accommodationId.toString(),
+    );
+
+    if (!accommodation) {
+      return;
+    }
+
+    const { name, description, pricePerNight, maxGuests, totalRooms, isActive } =
+      req.body as Record<string, unknown>;
+
+    const updateData: Record<string, unknown> = {};
+
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (pricePerNight !== undefined) updateData.pricePerNight = pricePerNight;
+    if (maxGuests !== undefined) updateData.maxGuests = maxGuests;
+    if (totalRooms !== undefined) updateData.totalRooms = totalRooms;
+    if (isActive !== undefined) updateData.isActive = isActive;
+
+    const updatedRoomType = await RoomTypeModel.findByIdAndUpdate(id, updateData, {
+      new: true,
+      runValidators: true,
+    });
+
+    res.status(200).json({
+      message: "Room type updated successfully",
+      data: updatedRoomType,
+    });
+  } catch {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const deleteRoomType = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const existingRoomType = await RoomTypeModel.findById(id);
+
+    if (!existingRoomType) {
+      res.status(404).json({ message: "Room type not found", data: null });
+      return;
+    }
+
+    const accommodation = await getOwnedAccommodation(
+      req,
+      res,
+      existingRoomType.accommodationId.toString(),
+    );
+
+    if (!accommodation) {
+      return;
+    }
+
+    const deletedRoomType = await RoomTypeModel.findByIdAndUpdate(
+      id,
+      { isActive: false },
+      { new: true },
+    );
+
+    res.status(200).json({
+      message: "Room type deleted successfully",
+      data: deletedRoomType,
+    });
+  } catch {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+

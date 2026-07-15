@@ -1,518 +1,499 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { MapPin, Calendar, Leaf, ChevronLeft, ChevronRight, Loader2, ArrowLeft } from "lucide-react";
-import Navbar from "@/app/components/navbar/Navbar";
-import Footer from "@/app/components/footer/Footer";
-import { getAccommodationById, Accommodation } from "@/lib/api/accommodation";
 import dynamic from "next/dynamic";
-const MapSection = dynamic(() => import("./MapSection"), { ssr: false });
-
 import { toast } from "react-toastify";
+import {
+  ArrowLeft,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  MapPin,
+  ShieldCheck,
+  Star,
+  UserCircle2,
+} from "lucide-react";
+import Navbar from "@/app/_components/Navbar";
+import api from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 
-export default function AccommodationDetailPage({ params }: { params: Promise<{ id: string }> }) {
-    const { id } = use(params);
-    const [accommodation, setAccommodation] = useState<Accommodation | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [currentImageIndex, setCurrentImageIndex] = useState(0);
-    const router = useRouter();
+const Map = dynamic(() => import("@/app/_components/Map"), { ssr: false });
 
-    useEffect(() => {
-        fetchAccommodation();
-    }, [id]);
-
-    const fetchAccommodation = async () => {
-        try {
-            setLoading(true);
-            const response = await getAccommodationById(id);
-            if (response.success) {
-                const data = Array.isArray(response.data) ? response.data[0] : response.data;
-                setAccommodation(data);
-            }
-        } catch (error: any) {
-            toast.error(error.message || "Failed to fetch accommodation");
-            setTimeout(() => router.push("/accommodations"), 2000);
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    const handlePrevImage = () => {
-        if (accommodation && accommodation.images.length > 0) {
-            setCurrentImageIndex((prev) => (prev - 1 + accommodation.images.length) % accommodation.images.length);
-        }
-    };
-
-    const handleNextImage = () => {
-        if (accommodation && accommodation.images.length > 0) {
-            setCurrentImageIndex((prev) => (prev + 1) % accommodation.images.length);
-        }
-    };
-
-    const handleBookNow = () => {
-        if (accommodation) {
-            router.push(`/bookings/create?accommodationId=${accommodation._id}&price=${accommodation.pricePerNight}`);
-        }
-    };
-
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-white">
-                <Navbar />
-                <div className="flex justify-center items-center py-40">
-                    <Loader2 className="animate-spin text-[#0c7272]" size={48} />
-                </div>
-                <Footer />
-            </div>
-        );
-    }
-
-    if (!accommodation) {
-        return (
-            <div className="min-h-screen bg-white">
-                <Navbar />
-                <div className="flex justify-center items-center py-40">
-                    <p className="text-gray-500 text-lg">Accommodation not found</p>
-                </div>
-                <Footer />
-            </div>
-        );
-    }
-
-    return (
-        <div className="min-h-screen bg-white text-[#134e4a]">
-            <Navbar />
-
-            <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-                {/* Back Button */}
-                <Link
-                    href="/accommodations"
-                    className="inline-flex items-center gap-2 text-[#0c7272] hover:text-[#134e4a] mb-6 text-sm sm:text-base"
-                >
-                    <ArrowLeft size={18} />
-                    Back to Accommodations
-                </Link>
-
-                {/* Image Gallery */}
-                {accommodation.images && accommodation.images.length > 0 ? (
-                    <div className="relative mb-8 rounded-lg overflow-hidden bg-gray-200">
-                        <div className="relative h-64 sm:h-96">
-                            <img
-                                src={accommodation.images[currentImageIndex].startsWith('http') 
-                                    ? accommodation.images[currentImageIndex] 
-                                    : `http://localhost:5050${accommodation.images[currentImageIndex]}`}
-                                alt={accommodation.name}
-                                className="w-full h-full object-cover"
-                            />
-                            {accommodation.images.length > 1 && (
-                                <>
-                                    <button
-                                        onClick={handlePrevImage}
-                                        className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-2 rounded-full shadow-lg transition"
-                                    >
-                                        <ChevronLeft size={24} className="text-[#0c7272]" />
-                                    </button>
-                                    <button
-                                        onClick={handleNextImage}
-                                        className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-2 rounded-full shadow-lg transition"
-                                    >
-                                        <ChevronRight size={24} className="text-[#0c7272]" />
-                                    </button>
-                                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
-                                        {currentImageIndex + 1} / {accommodation.images.length}
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    </div>
-                ) : (
-                    <div className="relative mb-8 rounded-lg overflow-hidden bg-gray-200 h-64 sm:h-96 flex items-center justify-center">
-                        <MapPin size={64} className="text-gray-400" />
-                    </div>
-                )}
-
-                {/* Main Content */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Left Column - Details */}
-                    <div className="lg:col-span-2 space-y-6">
-                        {/* Title and Location */}
-                        <div>
-                            <h1 className="text-3xl sm:text-4xl font-bold text-[#0c7272] mb-3">{accommodation.name}</h1>
-                            <div className="flex flex-wrap items-center gap-4 text-gray-600">
-                                <div className="flex items-center gap-1">
-                                    <MapPin size={18} />
-                                    <span className="text-sm sm:text-base">{accommodation.address}</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                    <Star className="text-yellow-400 fill-yellow-400" size={18} />
-                                    <span className="font-medium text-sm sm:text-base">{accommodation.rating.toFixed(1)}</span>
-                                    <span className="text-gray-500 text-sm">({accommodation.totalReviews} reviews)</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Overview */}
-                        <div>
-                            <h2 className="text-xl sm:text-2xl font-semibold text-[#0c7272] mb-3">Overview</h2>
-                            <p className="text-gray-700 leading-relaxed text-sm sm:text-base">{accommodation.overview}</p>
-                        </div>
-
-                        {/* Amenities */}
-                        {accommodation.amenities && accommodation.amenities.length > 0 && (
-                            <div>
-                                <h2 className="text-xl sm:text-2xl font-semibold text-[#0c7272] mb-3">Amenities</h2>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    {accommodation.amenities.map((amenity, index) => (
-                                        <div key={index} className="flex items-center gap-2 text-gray-700">
-                                            <div className="w-2 h-2 bg-[#0c7272] rounded-full"></div>
-                                            <span className="text-sm sm:text-base">{amenity}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Eco-Friendly Highlights */}
-                        {accommodation.ecoFriendlyHighlights && accommodation.ecoFriendlyHighlights.length > 0 && (
-                            <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-                                <div className="flex items-center gap-2 mb-3">
-                                    <Leaf className="text-green-600" size={24} />
-                                    <h2 className="text-xl sm:text-2xl font-semibold text-green-800">Eco-Friendly Highlights</h2>
-                                </div>
-                                <ul className="space-y-2">
-                                    {accommodation.ecoFriendlyHighlights.map((highlight, index) => (
-                                        <li key={index} className="flex items-start gap-2 text-green-700">
-                                            <span className="text-green-600 mt-1">🌱</span>
-                                            <span className="text-sm sm:text-base">{highlight}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        )}
-
-                                                {/* Location */}
-                                                <div>
-                                                        <h2 className="text-xl sm:text-2xl font-semibold text-[#0c7272] mb-3">Location</h2>
-                                                        <div className="border border-gray-300 rounded-lg p-4 sm:p-6 bg-gray-50">
-                                                                <p className="text-gray-600 mb-2 text-sm sm:text-base">
-                                                                        <strong>Coordinates:</strong> {accommodation.location.lat}, {accommodation.location.lng}
-                                                                </p>
-                                                                                                                                {accommodation.location?.lat && accommodation.location?.lng ? (
-                                                                                                                                    <MapSection
-                                                                                                                                        lat={accommodation.location.lat}
-                                                                                                                                        lng={accommodation.location.lng}
-                                                                                                                                        name={accommodation.name}
-                                                                                                                                    />
-                                                                                                                                ) : (
-                                                                                                                                    <p className="text-gray-500 italic text-sm sm:text-base">Map integration coming soon</p>
-                                                                                                                                )}
-                                                        </div>
-                                                </div>
-
-                        {/* Availability */}
-                        {(accommodation.availableFrom || accommodation.availableUntil) && (
-                            <div>
-                                <h2 className="text-xl sm:text-2xl font-semibold text-[#0c7272] mb-3">Availability</h2>
-                                <div className="flex flex-wrap gap-4">
-                                    {accommodation.availableFrom && (
-                                        <div className="flex items-center gap-2 text-gray-700">
-                                            <Calendar size={18} />
-                                            <span className="text-sm sm:text-base" suppressHydrationWarning>
-                                                <strong>From:</strong> {new Date(accommodation.availableFrom).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-                                            </span>
-                                        </div>
-                                    )}
-                                    {accommodation.availableUntil && (
-                                        <div className="flex items-center gap-2 text-gray-700">
-                                            <Calendar size={18} />
-                                            <span className="text-sm sm:text-base" suppressHydrationWarning>
-                                                <strong>To:</strong> {new Date(accommodation.availableUntil).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-                                            </span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Right Column - Booking Card */}
-                    <div className="lg:col-span-1">
-                        <div className="border border-gray-300 rounded-lg p-6 sticky top-8 bg-white shadow-lg">
-                            <div className="mb-6">
-                                <div className="flex items-baseline gap-2 mb-2">
-                                    {accommodation.pricePerNight && accommodation.pricePerNight > 0 && (
-                                        <>
-                                            <span className="text-3xl sm:text-4xl font-bold text-[#0c7272]">Rs. {accommodation.pricePerNight}</span>
-                                            <span className="text-gray-600 text-sm sm:text-base">per night</span>
-                                        </>
-                                    )}
-                                </div>
-                                <div className="flex items-center gap-1 text-gray-600">
-                                    <Star className="text-yellow-400 fill-yellow-400" size={16} />
-                                    <span className="font-medium text-sm">{accommodation.rating.toFixed(1)}</span>
-                                    <span className="text-gray-500 text-xs">({accommodation.totalReviews} reviews)</span>
-                                </div>
-                            </div>
-
-                            <button
-                                onClick={handleBookNow}
-                                className="w-full bg-[#0c7272] text-white py-3 sm:py-4 rounded-full hover:bg-[#134e4a] transition font-semibold text-base sm:text-lg shadow-md hover:shadow-lg"
-                            >
-                                Book Now
-                            </button>
-
-                            <p className="text-center text-gray-500 text-xs sm:text-sm mt-4">
-                                You won't be charged yet
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </main>
-
-                        {/* Review & Rating Section */}
-                        <section className="max-w-2xl mx-auto my-12">
-                               <ReviewSection accommodationId={accommodation._id} />
-                        </section>
-                        <Footer />
-                </div>
-        );
+interface HostSummary {
+  _id?: string;
+  name?: string;
+  profileImage?: string;
+  bio?: string;
 }
 
-// --- ReviewSection Component ---
-import { getReviews, createReview, updateReview, deleteReview } from "../../../lib/api/review";
-import { API } from "@/lib/api/endpoints";
-import { Star, Pencil, Trash2 } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
-function ReviewSection({ accommodationId }: { accommodationId: string }) {
-    const [reviews, setReviews] = useState<any[]>([]);
-    const [myRating, setMyRating] = useState(0);
-    const [myComment, setMyComment] = useState("");
-    const [submitting, setSubmitting] = useState(false);
-    const [editMode, setEditMode] = useState(false);
-    const [editReviewId, setEditReviewId] = useState<string | null>(null);
-    const [page, setPage] = useState(1);
-    const [limit] = useState(5);
-    const [sort, setSort] = useState("latest");
-    const [hasMore, setHasMore] = useState(false);
-    const { user, isAuthenticated } = useAuth();
+interface AccommodationDetail {
+  _id: string;
+  title: string;
+  description: string;
+  type: string;
+  address: string;
+  location: {
+    lat: number;
+    lng: number;
+  };
+  pricePerNight: number;
+  maxGuests: number;
+  images: string[];
+  rating: number;
+  totalReviews: number;
+  amenities: string[];
+  hostId: HostSummary;
+}
 
-    useEffect(() => {
-        fetchReviews();
-    }, [accommodationId, page, sort]);
+interface RoomTypeDetail {
+  _id: string;
+  name: string;
+  description?: string;
+  pricePerNight: number;
+  maxGuests: number;
+}
+
+interface ExtraDetail {
+  _id: string;
+  name: string;
+  price: number;
+  priceType: "per_person" | "per_booking";
+}
+
+interface ReviewItem {
+  _id: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  user?: {
+    _id?: string;
+    name?: string;
+  };
+  userId?: {
+    _id?: string;
+    name?: string;
+  };
+}
+
+interface AccommodationPageData {
+  accommodation: AccommodationDetail;
+  roomTypes: RoomTypeDetail[];
+  extras: ExtraDetail[];
+}
+
+interface SelectedExtra extends ExtraDetail {
+  quantity: number;
+}
+
+export default function AccommodationDetailPage() {
+  const params = useParams<{ id: string }>();
+  const router = useRouter();
+  const { isAuthenticated } = useAuth();
+  const id = params?.id;
+
+  const [data, setData] = useState<AccommodationPageData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedRoomTypeId, setSelectedRoomTypeId] = useState<string | null>(null);
+  const [selectedExtras, setSelectedExtras] = useState<SelectedExtra[]>([]);
+  const [checkIn, setCheckIn] = useState("");
+  const [checkOut, setCheckOut] = useState("");
+  const [guests, setGuests] = useState(1);
+  const [specialRequest, setSpecialRequest] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [reviews, setReviews] = useState<ReviewItem[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!id) return;
+
+    const fetchPageData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await api.get(`/accommodations/${id}`);
+        setData(response.data);
+      } catch {
+        setError("We couldn’t load this accommodation right now.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPageData();
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
 
     const fetchReviews = async () => {
-        const data = await getReviews(accommodationId, { page, limit, sort });
-        setReviews(data);
-        setHasMore(data.length === limit);
+      try {
+        setReviewsLoading(true);
+        const response = await api.get(`/reviews/${id}`);
+        setReviews(response.data?.reviews || response.data?.data || []);
+      } catch {
+        setReviews([]);
+      } finally {
+        setReviewsLoading(false);
+      }
     };
 
-    const handleSubmitReview = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setSubmitting(true);
-        try {
-            await createReview({ accommodationId, rating: myRating, comment: myComment });
-            toast.success("Review submitted successfully!");
-            setMyRating(0);
-            setMyComment("");
-            setPage(1);
-            fetchReviews();
-        } catch (err: any) {
-            if (err?.response?.status === 409) {
-                toast.info("You’ve already reviewed this accommodation. You can edit your review instead.");
-                // Optionally, scroll to or highlight the user's review
-            } else {
-                toast.error(err?.message || "Failed to submit review");
-            }
-        } finally {
-            setSubmitting(false);
-        }
-    };
+    fetchReviews();
+  }, [id]);
 
-    const handleEdit = (review: any) => {
-        setEditMode(true);
-        setEditReviewId(review._id);
-        setMyRating(review.rating);
-        setMyComment(review.comment);
-    };
+  useEffect(() => {
+    if (data?.roomTypes?.length) {
+      setSelectedRoomTypeId(data.roomTypes[0]._id);
+    }
+  }, [data]);
 
-    const handleUpdateReview = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!editReviewId) return;
-        setSubmitting(true);
-        try {
-            await updateReview(editReviewId, { rating: myRating, comment: myComment });
-            toast.success("Review updated successfully!");
-            setEditMode(false);
-            setEditReviewId(null);
-            setMyRating(0);
-            setMyComment("");
-            fetchReviews();
-        } catch (err: any) {
-            toast.error(err?.message || "Failed to update review");
-        } finally {
-            setSubmitting(false);
-        }
-    };
+  useEffect(() => {
+    if (data?.extras?.length) {
+      setSelectedExtras(data.extras.map((extra) => ({ ...extra, quantity: 0 })));
+    }
+  }, [data]);
 
-    const handleDeleteReview = async (reviewId: string) => {
-        if (!window.confirm("Are you sure you want to delete your review?")) return;
-        setSubmitting(true);
-        try {
-            await deleteReview(reviewId);
-            toast.success("Review deleted successfully!");
-            setEditMode(false);
-            setEditReviewId(null);
-            setMyRating(0);
-            setMyComment("");
-            fetchReviews();
-        } catch (err: any) {
-            toast.error(err?.message || "Failed to delete review");
-        } finally {
-            setSubmitting(false);
-        }
-    };
+  const selectedRoomType = useMemo(
+    () => data?.roomTypes.find((roomType) => roomType._id === selectedRoomTypeId) || null,
+    [data, selectedRoomTypeId],
+  );
 
-    // Star rating input
-    const StarInput = ({ value, onChange }: { value: number; onChange: (v: number) => void }) => (
-        <div className="flex gap-1">
-            {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                    type="button"
-                    key={star}
-                    onClick={() => onChange(star)}
-                    className="focus:outline-none"
-                >
-                    <Star size={24} className={star <= value ? "fill-yellow-400 text-yellow-400" : "text-gray-300"} />
-                </button>
-            ))}
-        </div>
+  const nights = useMemo(() => {
+    if (!checkIn || !checkOut) return 0;
+    const start = new Date(checkIn);
+    const end = new Date(checkOut);
+    const difference = Math.round((end.getTime() - start.getTime()) / 86400000);
+    return difference > 0 ? difference : 0;
+  }, [checkIn, checkOut]);
+
+  const extrasTotal = useMemo(() => {
+    return selectedExtras.reduce((sum, extra) => {
+      if (extra.quantity > 0) {
+        const unitPrice = extra.priceType === "per_person" ? extra.price * guests : extra.price;
+        return sum + unitPrice * extra.quantity;
+      }
+      return sum;
+    }, 0);
+  }, [selectedExtras, guests]);
+
+  const roomPrice = selectedRoomType?.pricePerNight ? selectedRoomType.pricePerNight * nights : 0;
+  const totalPrice = roomPrice + extrasTotal;
+
+  const handleImageChange = (direction: "prev" | "next") => {
+    if (!data?.accommodation.images?.length) return;
+    if (direction === "prev") {
+      setCurrentImageIndex((prev) => (prev - 1 + data.accommodation.images.length) % data.accommodation.images.length);
+    } else {
+      setCurrentImageIndex((prev) => (prev + 1) % data.accommodation.images.length);
+    }
+  };
+
+  const handleExtraQuantity = (extraId: string, delta: number) => {
+    setSelectedExtras((prev) =>
+      prev.map((extra) =>
+        extra._id === extraId ? { ...extra, quantity: Math.max(0, extra.quantity + delta) } : extra,
+      ),
     );
+  };
 
+  const handleBookNow = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (!isAuthenticated) {
+      toast.error("Please log in to book this stay.");
+      router.push("/login");
+      return;
+    }
+
+    if (!selectedRoomType || !checkIn || !checkOut || !guests) {
+      toast.error("Please select your stay details before booking.");
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      await api.post("/bookings", {
+        accommodationId: id,
+        roomTypeId: selectedRoomType._id,
+        checkIn,
+        checkOut,
+        guests,
+        specialRequest,
+        extrasTotal,
+      });
+
+      toast.success("Booking request created successfully!");
+      router.push("/bookings");
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Unable to create booking right now.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
     return (
-        <div className="bg-white rounded-xl shadow p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
-                <h2 className="text-2xl font-bold text-[#0c7272]">Reviews & Ratings</h2>
-                <div>
-                    <label className="mr-2 font-medium text-sm">Sort by:</label>
-                    <select
-                        value={sort}
-                        onChange={e => { setSort(e.target.value); setPage(1); }}
-                        className="border rounded px-2 py-1 text-sm"
-                    >
-                        <option value="latest">Latest</option>
-                        <option value="highest">Highest Rating</option>
-                        <option value="lowest">Lowest Rating</option>
-                    </select>
-                </div>
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 py-10 space-y-6">
+          <div className="h-10 w-32 rounded bg-gray-200 animate-pulse" />
+          <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_0.9fr] gap-8">
+            <div className="space-y-4">
+              <div className="h-80 rounded-2xl bg-gray-200 animate-pulse" />
+              <div className="h-6 w-1/2 rounded bg-gray-200 animate-pulse" />
+              <div className="h-20 rounded bg-gray-200 animate-pulse" />
             </div>
-            {reviews.length === 0 ? (
-                <p className="text-gray-500">No reviews yet.</p>
-            ) : (
-                <div className="space-y-4">
-                    {reviews.map((r) => {
-                        const isMyReview = isAuthenticated && (r.user?._id === user?._id || r.userId?._id === user?._id);
-                        return (
-                            <div key={r._id} className="border-b pb-3">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <span className="font-semibold text-[#0c7272]">{r.user?.name || r.userId?.name || "User"}</span>
-                                    <div className="flex gap-0.5">
-                                        {[1,2,3,4,5].map((i) => (
-                                            <Star key={i} size={18} className={i <= r.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"} />
-                                        ))}
-                                    </div>
-                                    <span className="text-xs text-gray-400 ml-2">{new Date(r.createdAt).toLocaleDateString()}</span>
-                                    {isMyReview && (
-                                        <>
-                                            <button
-                                                className="ml-2 p-1 rounded hover:bg-blue-50 text-blue-600"
-                                                title="Edit"
-                                                onClick={() => handleEdit(r)}
-                                                disabled={submitting}
-                                            >
-                                                <Pencil size={16} />
-                                            </button>
-                                            <button
-                                                className="ml-1 p-1 rounded hover:bg-red-50 text-red-600"
-                                                title="Delete"
-                                                onClick={() => handleDeleteReview(r._id)}
-                                                disabled={submitting}
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
-                                        </>
-                                    )}
-                                </div>
-                                <div className="text-gray-700 text-sm">{r.comment}</div>
-                            </div>
-                        );
-                    })}
-                </div>
-            )}
-            {/* Pagination Controls removed as requested */}
-
-            {isAuthenticated && !editMode && !reviews.some(r => r.userId?._id === user?._id) && (
-                <form onSubmit={handleSubmitReview} className="mt-8 space-y-3 bg-gray-50 p-4 rounded-lg border">
-                    <div>
-                        <label className="block font-medium mb-1">Your Rating</label>
-                        <StarInput value={myRating} onChange={setMyRating} />
-                    </div>
-                    <div>
-                        <label className="block font-medium mb-1">Your Review</label>
-                        <textarea
-                            value={myComment}
-                            onChange={e => setMyComment(e.target.value)}
-                            required
-                            className="border rounded px-3 py-2 w-full"
-                            placeholder="Share your experience..."
-                            rows={3}
-                        />
-                    </div>
-                    <button
-                        type="submit"
-                        disabled={submitting || myRating === 0}
-                        className="bg-[#0c7272] text-white px-6 py-2 rounded hover:bg-[#134e4a] transition font-semibold"
-                    >
-                        {submitting ? "Submitting..." : "Submit Review"}
-                    </button>
-                </form>
-            )}
-
-            {isAuthenticated && editMode && (
-                <form onSubmit={handleUpdateReview} className="mt-8 space-y-3 bg-gray-50 p-4 rounded-lg border">
-                    <div>
-                        <label className="block font-medium mb-1">Edit Your Rating</label>
-                        <StarInput value={myRating} onChange={setMyRating} />
-                    </div>
-                    <div>
-                        <label className="block font-medium mb-1">Edit Your Review</label>
-                        <textarea
-                            value={myComment}
-                            onChange={e => setMyComment(e.target.value)}
-                            required
-                            className="border rounded px-3 py-2 w-full"
-                            placeholder="Update your experience..."
-                            rows={3}
-                        />
-                    </div>
-                    <div className="flex gap-2">
-                        <button
-                            type="submit"
-                            disabled={submitting || myRating === 0}
-                            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition font-semibold"
-                        >
-                            {submitting ? "Updating..." : "Update Review"}
-                        </button>
-                        <button
-                            type="button"
-                            className="bg-gray-200 text-gray-700 px-6 py-2 rounded hover:bg-gray-300 transition font-semibold"
-                            onClick={() => { setEditMode(false); setEditReviewId(null); setMyRating(0); setMyComment(""); }}
-                            disabled={submitting}
-                        >Cancel</button>
-                    </div>
-                </form>
-            )}
-        </div>
+            <div className="h-96 rounded-2xl bg-gray-200 animate-pulse" />
+          </div>
+        </main>
+      </div>
     );
-}
+  }
+
+  if (error || !data?.accommodation) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <main className="max-w-5xl mx-auto px-4 sm:px-6 py-16 text-center">
+          <h1 className="text-2xl font-semibold text-gray-800">Unable to load this stay</h1>
+          <p className="mt-3 text-gray-600">{error || "The requested accommodation could not be found."}</p>
+          <Link href="/accommodations" className="btn-primary inline-flex mt-6">
+            Browse accommodations
+          </Link>
+        </main>
+      </div>
+    );
+  }
+
+  const accommodation = data.accommodation;
+  const images = accommodation.images?.length ? accommodation.images : ["/images/placeholder.jpg"];
+
+  return (
+    <div className="min-h-screen bg-gray-50 text-gray-800">
+      <Navbar />
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        <Link href="/accommodations" className="inline-flex items-center gap-2 text-green-800 hover:text-green-900 mb-6">
+          <ArrowLeft size={18} />
+          Back to accommodations
+        </Link>
+
+        <div className="grid grid-cols-1 xl:grid-cols-[1.35fr_0.8fr] gap-8">
+          <section className="space-y-6">
+            <div className="rounded-3xl overflow-hidden border border-gray-200 bg-white shadow-sm">
+              <div className="relative h-[320px] sm:h-[420px] bg-gray-100">
+                <img
+                  src={images[currentImageIndex].startsWith("http") ? images[currentImageIndex] : `/api${images[currentImageIndex]}`}
+                  alt={accommodation.title}
+                  className="h-full w-full object-cover"
+                />
+                {images.length > 1 && (
+                  <>
+                    <button type="button" onClick={() => handleImageChange("prev")} className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 shadow">
+                      <ChevronLeft size={20} />
+                    </button>
+                    <button type="button" onClick={() => handleImageChange("next")} className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 shadow">
+                      <ChevronRight size={20} />
+                    </button>
+                  </>
+                )}
+              </div>
+              <div className="flex gap-3 overflow-x-auto p-3">
+                {images.map((image, index) => (
+                  <button key={`${image}-${index}`} type="button" onClick={() => setCurrentImageIndex(index)} className={`h-20 w-24 shrink-0 overflow-hidden rounded-lg border ${index === currentImageIndex ? "border-green-800" : "border-gray-200"}`}>
+                    <img src={image.startsWith("http") ? image : `/api${image}`} alt={`${accommodation.title} ${index + 1}`} className="h-full w-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-3xl font-semibold text-green-900">{accommodation.title}</h1>
+                <span className="badge-verified">{accommodation.type}</span>
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                <div className="flex items-center gap-2">
+                  <MapPin size={16} />
+                  <span>{accommodation.address}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Star size={16} className="fill-yellow-400 text-yellow-400" />
+                  <span>{accommodation.rating.toFixed(1)}</span>
+                  <span>({accommodation.totalReviews} reviews)</span>
+                </div>
+              </div>
+
+              <p className="mt-5 text-gray-700 leading-7">{accommodation.description}</p>
+
+              <div className="mt-6">
+                <h2 className="text-lg font-semibold text-green-900">Amenities</h2>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {accommodation.amenities?.map((amenity) => (
+                    <span key={amenity} className="rounded-full border border-green-200 bg-green-50 px-3 py-1 text-sm text-green-800">
+                      {amenity}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                <div className="flex items-center gap-3">
+                  {accommodation.hostId?.profileImage ? (
+                    <img src={accommodation.hostId.profileImage} alt={accommodation.hostId.name || "Host"} className="h-12 w-12 rounded-full object-cover" />
+                  ) : (
+                    <UserCircle2 size={40} className="text-gray-400" />
+                  )}
+                  <div>
+                    <p className="font-semibold text-green-900">Hosted by {accommodation.hostId?.name || "Host"}</p>
+                    {accommodation.hostId?.bio ? <p className="text-sm text-gray-600">{accommodation.hostId.bio}</p> : null}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+              <div className="flex items-center gap-2 text-green-900">
+                <ShieldCheck size={18} />
+                <h2 className="text-xl font-semibold">Location</h2>
+              </div>
+              <div className="mt-4 overflow-hidden rounded-2xl border border-gray-200">
+                <Map lat={accommodation.location.lat} lng={accommodation.location.lng} name={accommodation.title} />
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+              <h2 className="text-xl font-semibold text-green-900">Choose your room type</h2>
+              <div className="mt-4 grid gap-3">
+                {data.roomTypes.map((roomType) => (
+                  <button key={roomType._id} type="button" onClick={() => setSelectedRoomTypeId(roomType._id)} className={`rounded-2xl border p-4 text-left transition ${selectedRoomTypeId === roomType._id ? "border-green-800 bg-green-50" : "border-gray-200 hover:border-green-300"}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold text-green-900">{roomType.name}</p>
+                        <p className="mt-1 text-sm text-gray-600">{roomType.description}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-green-900">Rs. {roomType.pricePerNight}</p>
+                        <p className="text-sm text-gray-500">Up to {roomType.maxGuests} guests</p>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+              <h2 className="text-xl font-semibold text-green-900">Optional extras</h2>
+              <div className="mt-4 space-y-3">
+                {data.extras.map((extra) => {
+                  const selectedExtra = selectedExtras.find((item) => item._id === extra._id);
+                  return (
+                    <div key={extra._id} className="flex items-center justify-between gap-3 rounded-2xl border border-gray-200 p-3">
+                      <div>
+                        <p className="font-medium text-gray-800">{extra.name}</p>
+                        <p className="text-sm text-gray-500">Rs. {extra.price} {extra.priceType === "per_person" ? "per person" : "per booking"}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button type="button" onClick={() => handleExtraQuantity(extra._id, -1)} className="h-8 w-8 rounded-full border border-gray-300 text-lg">−</button>
+                        <span className="w-6 text-center text-sm font-semibold">{selectedExtra?.quantity || 0}</span>
+                        <button type="button" onClick={() => handleExtraQuantity(extra._id, 1)} className="h-8 w-8 rounded-full border border-gray-300 text-lg">+</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+              <h2 className="text-xl font-semibold text-green-900">Reviews</h2>
+              {reviewsLoading ? (
+                <div className="mt-4 space-y-3">
+                  <div className="h-16 rounded bg-gray-100" />
+                  <div className="h-16 rounded bg-gray-100" />
+                </div>
+              ) : reviews.length === 0 ? (
+                <p className="mt-4 text-sm text-gray-600">No reviews yet for this stay.</p>
+              ) : (
+                <div className="mt-4 space-y-4">
+                  {reviews.map((review) => (
+                    <div key={review._id} className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="font-semibold text-green-900">{review.user?.name || review.userId?.name || "Guest"}</p>
+                        <div className="flex items-center gap-1 text-yellow-500">
+                          {Array.from({ length: 5 }).map((_, index) => (
+                            <Star key={`${review._id}-${index}`} size={14} className={index < review.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"} />
+                          ))}
+                        </div>
+                      </div>
+                      <p className="mt-2 text-sm text-gray-700">{review.comment}</p>
+                      <p className="mt-2 text-xs text-gray-500">{new Date(review.createdAt).toLocaleDateString()}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+
+          <aside className="lg:sticky lg:top-24 h-fit">
+            <form onSubmit={handleBookNow} className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm space-y-4">
+              <div>
+                <h2 className="text-xl font-semibold text-green-900">Book your stay</h2>
+                <p className="mt-1 text-sm text-gray-600">Reserve your dates and add any extras you need.</p>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+                <label className="space-y-1 text-sm font-medium text-gray-700">
+                  <span>Check-in</span>
+                  <input type="date" value={checkIn} onChange={(e) => setCheckIn(e.target.value)} className="input-field" required />
+                </label>
+                <label className="space-y-1 text-sm font-medium text-gray-700">
+                  <span>Check-out</span>
+                  <input type="date" value={checkOut} onChange={(e) => setCheckOut(e.target.value)} className="input-field" required />
+                </label>
+              </div>
+
+              <label className="space-y-1 text-sm font-medium text-gray-700 block">
+                <span>Guests</span>
+                <input type="number" min="1" max={accommodation.maxGuests} value={guests} onChange={(e) => setGuests(Number(e.target.value))} className="input-field" required />
+              </label>
+
+              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+                <div className="flex items-center justify-between">
+                  <span>Selected room</span>
+                  <span className="font-semibold text-green-900">{selectedRoomType?.name || "Choose a room"}</span>
+                </div>
+                <div className="mt-3 flex items-center justify-between">
+                  <span>Stay</span>
+                  <span>Rs. {roomPrice}</span>
+                </div>
+                <div className="mt-1 flex items-center justify-between">
+                  <span>Extras</span>
+                  <span>Rs. {extrasTotal}</span>
+                </div>
+                <div className="mt-3 flex items-center justify-between border-t border-gray-200 pt-3 font-semibold text-green-900">
+                  <span>Total</span>
+                  <span>Rs. {totalPrice}</span>
+                </div>
+              </div>
+
+              <label className="space-y-1 text-sm font-medium text-gray-700 block">
+                <span>Special requests</span>
+                <textarea value={specialRequest} onChange={(e) => setSpecialRequest(e.target.value)} className="input-field min-h-[96px]" placeholder="Anything we should know?" />
+              </label>
+
+              <button type="submit" className="btn-primary w-full flex items-center justify-center gap-2" disabled={submitting}>
+                {submitting ? <Loader2 size={18} className="animate-spin" /> : <CalendarDays size={18} />} 
+                {submitting ? "Booking..." : "Book Now"}
+              </button>
+            </form>
+          </aside>
+        </div>
+      </main>
+    </div>
+  );

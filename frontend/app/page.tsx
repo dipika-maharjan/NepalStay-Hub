@@ -11,9 +11,9 @@ import {
   getActiveAccommodations,
   searchAccommodations,
   Accommodation,
-} from "../lib/api/accommodation";
-import Navbar from "./components/navbar/Navbar";
-import Footer from "./components/footer/Footer";
+} from "@/lib/api/accommodation";
+import Navbar from "@/app/_components/Navbar";
+import Footer from "@/components/footer/Footer";
 
 export default function HomePage() {
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);

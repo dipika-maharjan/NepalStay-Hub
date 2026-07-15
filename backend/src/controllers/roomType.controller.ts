@@ -55,8 +55,14 @@ export const createRoomType = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const { accommodationId, name, description, pricePerNight, maxGuests, totalRooms } =
-      req.body as Record<string, unknown>;
+    const {
+      accommodationId,
+      name,
+      description,
+      pricePerNight,
+      maxGuests,
+      totalRooms,
+    } = req.body as Record<string, unknown>;
 
     const accommodation = await getOwnedAccommodation(
       req,
@@ -110,8 +116,14 @@ export const updateRoomType = async (
       return;
     }
 
-    const { name, description, pricePerNight, maxGuests, totalRooms, isActive } =
-      req.body as Record<string, unknown>;
+    const {
+      name,
+      description,
+      pricePerNight,
+      maxGuests,
+      totalRooms,
+      isActive,
+    } = req.body as Record<string, unknown>;
 
     const updateData: Record<string, unknown> = {};
 
@@ -122,10 +134,14 @@ export const updateRoomType = async (
     if (totalRooms !== undefined) updateData.totalRooms = totalRooms;
     if (isActive !== undefined) updateData.isActive = isActive;
 
-    const updatedRoomType = await RoomTypeModel.findByIdAndUpdate(id, updateData, {
-      new: true,
-      runValidators: true,
-    });
+    const updatedRoomType = await RoomTypeModel.findByIdAndUpdate(
+      id,
+      updateData,
+      {
+        new: true,
+        runValidators: true,
+      },
+    );
 
     res.status(200).json({
       message: "Room type updated successfully",
@@ -173,4 +189,3 @@ export const deleteRoomType = async (
     res.status(500).json({ message: "Internal server error" });
   }
 };
-

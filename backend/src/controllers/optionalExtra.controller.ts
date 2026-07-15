@@ -120,10 +120,14 @@ export const updateExtra = async (
     if (priceType !== undefined) updateData.priceType = priceType;
     if (isActive !== undefined) updateData.isActive = isActive;
 
-    const updatedExtra = await OptionalExtraModel.findByIdAndUpdate(id, updateData, {
-      new: true,
-      runValidators: true,
-    });
+    const updatedExtra = await OptionalExtraModel.findByIdAndUpdate(
+      id,
+      updateData,
+      {
+        new: true,
+        runValidators: true,
+      },
+    );
 
     res.status(200).json({
       message: "Optional extra updated successfully",
@@ -171,4 +175,3 @@ export const deleteExtra = async (
     res.status(500).json({ message: "Internal server error" });
   }
 };
-

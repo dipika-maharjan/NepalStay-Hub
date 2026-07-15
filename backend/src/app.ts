@@ -11,6 +11,8 @@ import bookingRoutes from "./routes/booking.route";
 import reviewRoutes from "./routes/review.route";
 import paymentRoutes from "./routes/payment.route";
 import hostVerificationRoutes from "./routes/hostVerification.route";
+import roomTypeRoutes from "./routes/roomType.route";
+import optionalExtraRoutes from "./routes/optionalExtra.route";
 import { adminUserRoutes } from "./routes/admin/user.route";
 import ipBlockRoutes from "./routes/admin/ipBlock.route";
 import {
@@ -104,6 +106,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/mfa", mfaRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/accommodations", accommodationRoutes);
+app.use("/api/room-types", roomTypeRoutes);
+app.use("/api/optional-extras", optionalExtraRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/payments", paymentRoutes);

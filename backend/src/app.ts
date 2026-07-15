@@ -22,6 +22,7 @@ import {
   ssrfProtection,
   mongoSanitize,
 } from "./middleware/security.middleware";
+import logger from "./utils/logger.util";
 
 const app: Application = express();
 
@@ -84,6 +85,19 @@ app.use(generalRateLimiter);
 app.use(mongoSanitize()); // NoSQL injection prevention
 app.use(xssSanitizer); // XSS input sanitization
 app.use(ssrfProtection(["stripe.com", "googleapis.com"])); // SSRF protection
+
+// Request logging — no sensitive data logged
+app.use((req, _res, next) => {
+  logger.info({
+    action: "HTTP_REQUEST",
+    metadata: {
+      method: req.method,
+      path: req.path,
+      ip: req.ip,
+    },
+  });
+  next();
+});
 
 // ─── Routes ───────────────────────────────────────────────────────────────
 app.use("/api/auth", authRoutes);

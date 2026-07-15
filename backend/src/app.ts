@@ -15,12 +15,19 @@ import mfaRoutes from "./routes/mfa.route";
 import profileRoutes from "./routes/profile.route";
 import hostVerificationRoutes from "./routes/hostVerification.route";
 import ipBlockRoutes from "./routes/admin/ipBlock.route";
+import paymentRoutes from "./routes/payment.route";
 import {
   generalRateLimiter,
   ipBlockMiddleware,
 } from "./middleware/rateLimiter.middleware";
 
 const app: Application = express();
+
+// Stripe webhook endpoint needs raw body. Register raw parser before JSON parser so signature can be verified
+app.use(
+  "/api/payments/webhook",
+  express.raw({ type: "application/json" }),
+);
 
 // Configure JSON parser to skip multipart/form-data requests (handled by multer)
 app.use(
@@ -64,5 +71,7 @@ app.use("/api/mfa", mfaRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/host-verification", hostVerificationRoutes);
 app.use("/api/admin/ip-blocks", ipBlockRoutes);
+
+app.use("/api/payments", paymentRoutes);
 
 export default app;

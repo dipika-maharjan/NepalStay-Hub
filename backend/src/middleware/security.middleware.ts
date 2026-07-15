@@ -6,7 +6,7 @@ import xss from "xss";
 export const xssSanitizer = (
   req: Request,
   _res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): void => {
   const sanitizeValue = (value: unknown): unknown => {
     if (typeof value === "string") return xss(value);
@@ -15,7 +15,7 @@ export const xssSanitizer = (
         Object.entries(value as Record<string, unknown>).map(([k, v]) => [
           k,
           sanitizeValue(v),
-        ])
+        ]),
       );
     }
     return value;
@@ -36,7 +36,7 @@ export const ssrfProtection = (allowedDomains: string[]) => {
         try {
           const parsed = new URL(url as string);
           const isAllowed = allowedDomains.some((domain) =>
-            parsed.hostname.endsWith(domain)
+            parsed.hostname.endsWith(domain),
           );
           if (!isAllowed) {
             res.status(400).json({ message: "Invalid or disallowed URL" });

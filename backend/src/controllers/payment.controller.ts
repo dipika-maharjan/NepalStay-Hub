@@ -8,7 +8,10 @@ import { AuthRequest } from "../middleware/auth.middleware";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
 
 // POST /api/payments/create-intent
-export const createPaymentIntent = async (req: Request, res: Response): Promise<void> => {
+export const createPaymentIntent = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const authReq = req as AuthRequest;
     const { bookingId } = req.body;
@@ -19,7 +22,10 @@ export const createPaymentIntent = async (req: Request, res: Response): Promise<
       return;
     }
 
-    const booking = await BookingModel.findOne({ _id: bookingId, userId: travelerId });
+    const booking = await BookingModel.findOne({
+      _id: bookingId,
+      userId: travelerId,
+    });
     if (!booking) {
       res.status(404).json({ message: "Booking not found or access denied" });
       return;
@@ -75,7 +81,10 @@ export const createPaymentIntent = async (req: Request, res: Response): Promise<
 };
 
 // POST /api/payments/webhook — Stripe webhook
-export const stripeWebhook = async (req: Request, res: Response): Promise<void> => {
+export const stripeWebhook = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   const sig = req.headers["stripe-signature"] as string;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || "";
 
@@ -100,7 +109,7 @@ export const stripeWebhook = async (req: Request, res: Response): Promise<void> 
           status: "succeeded",
           stripeClientSecret: null,
           paidAt: new Date(),
-        }
+        },
       );
 
       await BookingModel.findByIdAndUpdate(bookingId, {
@@ -124,7 +133,7 @@ export const stripeWebhook = async (req: Request, res: Response): Promise<void> 
 
       await PaymentModel.findOneAndUpdate(
         { stripePaymentIntentId: intent.id },
-        { status: "failed" }
+        { status: "failed" },
       );
 
       await AuditLogModel.create({
@@ -146,7 +155,10 @@ export const stripeWebhook = async (req: Request, res: Response): Promise<void> 
 };
 
 // GET /api/payments/booking/:bookingId
-export const getPaymentByBooking = async (req: Request, res: Response): Promise<void> => {
+export const getPaymentByBooking = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const authReq = req as AuthRequest;
     const travelerId = authReq.user?.userId;

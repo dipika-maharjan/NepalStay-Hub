@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import Navbar from "@/app/_components/Navbar";
+import Navbar from "@/app/components/navbar/Navbar";
 import api from "@/lib/api";
 import useAuth from "@/context/AuthContext";
 
@@ -13,19 +13,7 @@ interface UserItem {
   email: string;
   role: string;
   isEmailVerified?: boolean;
-  isHostVerified?: boolean;
   createdAt: string;
-}
-
-interface VerificationItem {
-  _id: string;
-  userId?: {
-    name?: string;
-    email?: string;
-  };
-  documentType?: string;
-  submittedAt?: string;
-  status?: string;
 }
 
 interface AccommodationItem {
@@ -64,20 +52,17 @@ export default function AdminPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState<
-    "users" | "verifications" | "accommodations" | "audit" | "ipblocks"
+    "users" | "accommodations" | "audit" | "ipblocks"
   >("users");
   const [users, setUsers] = useState<UserItem[]>([]);
-  const [verifications, setVerifications] = useState<VerificationItem[]>([]);
   const [accommodations, setAccommodations] = useState<AccommodationItem[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
   const [ipBlocks, setIpBlocks] = useState<IPBlockItem[]>([]);
-
+  
   const [loadingUsers, setLoadingUsers] = useState(true);
-  const [loadingVerifications, setLoadingVerifications] = useState(true);
   const [loadingAccommodations, setLoadingAccommodations] = useState(true);
   const [loadingAudit, setLoadingAudit] = useState(true);
   const [loadingIPBlocks, setLoadingIPBlocks] = useState(true);
-  const [verificationFilter, setVerificationFilter] = useState("all");
   const [auditPage, setAuditPage] = useState(1);
   const [auditPages, setAuditPages] = useState(1);
   const [newIp, setNewIp] = useState("");
@@ -114,7 +99,6 @@ export default function AdminPage() {
   const fetchAll = async () => {
     await Promise.all([
       fetchUsers(),
-      fetchVerifications(),
       fetchAccommodations(),
       fetchIPBlocks(),
     ]);
@@ -136,21 +120,6 @@ export default function AdminPage() {
     }
   };
 
-  const fetchVerifications = async () => {
-    try {
-      setLoadingVerifications(true);
-      const response = await api.get("/host-verification/admin/all");
-      setVerifications(response.data?.verifications || []);
-    } catch (error: any) {
-      toast.error(
-        error.response?.data?.message ||
-          error.message ||
-          "Failed to load host verifications",
-      );
-    } finally {
-      setLoadingVerifications(false);
-    }
-  };
 
   const fetchAccommodations = async () => {
     try {
@@ -234,40 +203,6 @@ export default function AdminPage() {
     }
   };
 
-  const handleApproveVerification = async (id: string) => {
-    try {
-      await api.put(`/host-verification/admin/${id}/approve`);
-      toast.success("Verification approved");
-      await fetchVerifications();
-    } catch (error: any) {
-      toast.error(
-        error.response?.data?.message ||
-          error.message ||
-          "Failed to approve verification",
-      );
-    }
-  };
-
-  const handleRejectVerification = async (id: string) => {
-    const reason = rejectReason[id]?.trim();
-    if (!reason) {
-      toast.error("Please enter a rejection reason");
-      return;
-    }
-
-    try {
-      await api.put(`/host-verification/admin/${id}/reject`, { reason });
-      toast.success("Verification rejected");
-      setRejectReason((prev) => ({ ...prev, [id]: "" }));
-      await fetchVerifications();
-    } catch (error: any) {
-      toast.error(
-        error.response?.data?.message ||
-          error.message ||
-          "Failed to reject verification",
-      );
-    }
-  };
 
   const handleApproveAccommodation = async (id: string) => {
     try {
@@ -327,10 +262,6 @@ export default function AdminPage() {
     }
   };
 
-  const filteredVerifications = useMemo(() => {
-    if (verificationFilter === "all") return verifications;
-    return verifications.filter((item) => item.status === verificationFilter);
-  }, [verifications, verificationFilter]);
 
   const renderValue = (value: unknown) =>
     typeof value === "string" ? value : JSON.stringify(value);
@@ -364,7 +295,6 @@ export default function AdminPage() {
         <div className="mb-6 flex flex-wrap gap-2">
           {[
             { key: "users", label: "Users" },
-            { key: "verifications", label: "Host Verifications" },
             { key: "accommodations", label: "Accommodations" },
             { key: "audit", label: "Audit Logs" },
             { key: "ipblocks", label: "IP Blocks" },
@@ -403,9 +333,6 @@ export default function AdminPage() {
                         Email Verified
                       </th>
                       <th className="px-4 py-3 text-left font-semibold text-gray-700">
-                        Host Verified
-                      </th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-700">
                         Created At
                       </th>
                       <th className="px-4 py-3 text-left font-semibold text-gray-700">
@@ -427,15 +354,11 @@ export default function AdminPage() {
                             className="rounded-md border border-gray-300 px-2 py-1 text-sm"
                           >
                             <option value="traveler">Traveler</option>
-                            <option value="host">Host</option>
                             <option value="admin">Admin</option>
                           </select>
                         </td>
                         <td className="px-4 py-3">
                           {userItem.isEmailVerified ? "Yes" : "No"}
-                        </td>
-                        <td className="px-4 py-3">
-                          {userItem.isHostVerified ? "Yes" : "No"}
                         </td>
                         <td className="px-4 py-3">
                           {new Date(userItem.createdAt).toLocaleDateString()}
@@ -457,95 +380,6 @@ export default function AdminPage() {
           </section>
         )}
 
-        {activeTab === "verifications" && (
-          <section>
-            <div className="mb-4 flex flex-wrap items-center gap-3">
-              <label className="text-sm font-medium text-gray-700">
-                Filter
-              </label>
-              <select
-                value={verificationFilter}
-                onChange={(event) => setVerificationFilter(event.target.value)}
-                className="rounded-md border border-gray-300 px-3 py-2 text-sm"
-              >
-                <option value="all">All</option>
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-              </select>
-            </div>
-
-            {loadingVerifications ? (
-              <div className="card p-6">Loading host verifications...</div>
-            ) : filteredVerifications.length === 0 ? (
-              <div className="card p-6 text-gray-600">
-                No host verifications found.
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {filteredVerifications.map((item) => (
-                  <article key={item._id} className="card p-5">
-                    <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                      <div>
-                        <p className="font-semibold text-gray-900">
-                          {item.userId?.name || "Unknown user"}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {item.userId?.email || "No email"}
-                        </p>
-                        <p className="mt-2 text-sm text-gray-700">
-                          Document: {item.documentType || "N/A"}
-                        </p>
-                        <p className="text-sm text-gray-700">
-                          Submitted:{" "}
-                          {item.submittedAt
-                            ? new Date(item.submittedAt).toLocaleString()
-                            : "N/A"}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-3">
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${item.status === "approved" ? "badge-verified" : item.status === "pending" ? "badge-pending" : "bg-red-100 text-red-700 border border-red-200"}`}
-                        >
-                          {item.status || "pending"}
-                        </span>
-                        {item.status !== "approved" && (
-                          <button
-                            onClick={() => handleApproveVerification(item._id)}
-                            className="btn-primary text-sm"
-                          >
-                            Approve
-                          </button>
-                        )}
-                        {item.status !== "approved" && (
-                          <div className="flex flex-col gap-2">
-                            <input
-                              value={rejectReason[item._id] || ""}
-                              onChange={(event) =>
-                                setRejectReason((prev) => ({
-                                  ...prev,
-                                  [item._id]: event.target.value,
-                                }))
-                              }
-                              className="rounded-md border border-gray-300 px-3 py-2 text-sm"
-                              placeholder="Rejection reason"
-                            />
-                            <button
-                              onClick={() => handleRejectVerification(item._id)}
-                              className="btn-danger text-sm"
-                            >
-                              Reject
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
-          </section>
-        )}
 
         {activeTab === "accommodations" && (
           <section className="card overflow-hidden p-0">

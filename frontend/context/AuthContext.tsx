@@ -6,9 +6,14 @@ import {
   ReactNode,
   useEffect,
 } from "react";
-import { clearAuthCookies, getAuthToken, getUserData } from "@/lib/cookie";
+import {
+  clearAuthCookies,
+  getAuthToken,
+  getUserData,
+  setUserData,
+} from "@/lib/cookie";
 import { useRouter } from "next/navigation";
-
+import api from "@/lib/api";
 interface AuthContextProps {
   isAuthenticated: boolean;
   setIsAuthenticated: (value: boolean) => void;
@@ -27,11 +32,50 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+
+  const readStoredAuth = () => {
+    if (typeof window === "undefined") {
+      return { token: null as string | null, user: null as any };
+    }
+
+    const token = localStorage.getItem("token");
+    const storedUser = localStorage.getItem("user_data");
+
+    return {
+      token,
+      user: storedUser ? JSON.parse(storedUser) : null,
+    };
+  };
+
   const checkAuth = async () => {
     try {
-      const token = await getAuthToken();
-      const user = await getUserData();
-      setUser(user);
+      const { token: localToken, user: storedUser } = readStoredAuth();
+      const token = localToken || (await getAuthToken());
+      let userData = storedUser || (await getUserData());
+
+      if (token) {
+        if (typeof window !== "undefined") {
+          localStorage.setItem("token", token);
+        }
+
+        try {
+          const { data } = await api.get("/api/auth/me");
+          if (data.user) {
+            userData = data.user;
+            if (typeof window !== "undefined") {
+              localStorage.setItem("user_data", JSON.stringify(data.user));
+            }
+            await setUserData(data.user);
+          }
+        } catch (error) {
+          console.error("Failed to fetch fresh user data:", error);
+        }
+      } else if (typeof window !== "undefined") {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user_data");
+      }
+
+      setUser(userData);
       setIsAuthenticated(!!token);
     } catch (err) {
       setIsAuthenticated(false);
@@ -51,6 +95,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = async () => {
     try {
       await clearAuthCookies();
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user_data");
+      }
       setIsAuthenticated(false);
       setUser(null);
       router.push("/login");

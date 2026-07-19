@@ -1,67 +1,80 @@
 "use client";
 
 import Image from "next/image";
-
-import { Search, Star } from "lucide-react";
-
+import { Search, Star, MapPin, ChevronRight, Sparkles } from "lucide-react";
 import mainImage from "../public/images/main-section.png";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  getActiveAccommodations,
+  getAllAccommodations,
   searchAccommodations,
   Accommodation,
 } from "@/lib/api/accommodation";
-import Navbar from "@/app/_components/Navbar";
-import Footer from "@/components/footer/Footer";
+import Navbar from "@/app/components/navbar/Navbar";
+import Footer from "@/app/components/footer/Footer";
+import { normalizeImageUrl } from "@/lib/image";
 
 export default function HomePage() {
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
-  const [loadedOnce, setLoadedOnce] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchAccommodations = useCallback(async (query?: string) => {
-    if (!query || !query.trim()) {
-      setLoading(false);
-    } else {
+  useEffect(() => {
+    const loadAccommodations = async () => {
       setLoading(true);
-    }
+      setError(null);
+
+      try {
+        const res = await getAllAccommodations();
+        if (Array.isArray(res.data)) {
+          setAccommodations(res.data.filter((a) => a.isActive !== false));
+        } else {
+          setAccommodations([]);
+        }
+      } catch (err) {
+        setAccommodations([]);
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Unable to load accommodations right now.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void loadAccommodations();
+  }, []);
+
+  const handleSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearch(value);
+
+    setLoading(true);
+    setError(null);
+
     try {
       const res =
-        query && query.trim()
-          ? await searchAccommodations(query.trim())
-          : await getActiveAccommodations();
+        value.trim() === ""
+          ? await getAllAccommodations()
+          : await searchAccommodations(value);
 
-      if (res?.success && Array.isArray(res.data)) {
-        const filtered = res.data
-          .filter((a) => a.isActive !== false)
-          .slice(0, 6);
-        setAccommodations(filtered);
-        setLoadedOnce(true);
+      if (Array.isArray(res.data)) {
+        setAccommodations(res.data.filter((a) => a.isActive !== false));
+      } else {
+        setAccommodations([]);
       }
-    } catch (error) {
-      console.error("Failed to load accommodations", error);
+    } catch (err) {
+      setAccommodations([]);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to load accommodations right now.",
+      );
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  useEffect(() => {
-    if (!search.trim()) {
-      void fetchAccommodations();
-      return;
-    }
-
-    const timer = window.setTimeout(() => {
-      void fetchAccommodations(search);
-    }, 350);
-
-    return () => window.clearTimeout(timer);
-  }, [fetchAccommodations, search]);
-
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearch(e.target.value);
   };
 
   // Scroll to 'For You' section or go to /accommodations if no results
@@ -75,147 +88,207 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-[#134e4a] flex flex-col">
+    <div className="min-h-screen bg-[#fafafa] text-slate-800 flex flex-col font-sans selection:bg-teal-500 selection:text-white">
       <Navbar />
-      <main className="flex-1 max-w-6xl mx-auto px-6 py-8">
-        {/* Search Bar */}
-        <div className="flex justify-center mb-10">
-          <div className="relative w-full max-w-xl">
-            <Search
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-              size={20}
-            />
-            <input
-              type="text"
-              placeholder="Search destinations, places"
-              className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#0c7272]/20"
-              value={search}
-              onChange={handleSearch}
-            />
-          </div>
-        </div>
 
-        {/* Hero Section */}
-        <section className="relative h-87.5 rounded-3xl overflow-hidden mb-12 shadow-xl">
-          <Image
-            src={mainImage}
-            alt="Nepal Mountains"
-            fill
-            className="object-cover"
-            priority
-          />
-          <div className="absolute inset-0 bg-black/30 flex flex-col items-center justify-center text-white text-center">
-            <h2 className="text-4xl font-bold mb-2">Discover Your Nepal</h2>
-            <p className="mb-6 opacity-90">
-              Personalized trips to breathtaking destinations.
-            </p>
-            <button
-              className="bg-[#ff9f1c] hover:bg-[#f39200] text-white px-8 py-3 rounded-full font-bold transition-transform hover:scale-105"
-              onClick={handleExploreNow}
-              disabled={accommodations.length === 0}
-            >
-              Explore Now
-            </button>
+      <main className="flex-1 w-full flex flex-col items-center">
+        {/* Premium Hero Section */}
+        <section className="relative w-full max-w-[1400px] px-4 md:px-8 mt-6">
+          <div className="relative h-[600px] w-full rounded-[2.5rem] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.1)] ring-1 ring-black/5 group">
+            <Image
+              src={mainImage}
+              alt="Nepal Mountains"
+              fill
+              className="object-cover scale-105 transition-transform duration-[20s] ease-out group-hover:scale-110"
+              priority
+            />
+            {/* Elegant Gradient Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/20 to-black/80" />
+
+            <div className="absolute inset-0 flex flex-col items-center justify-center px-4 text-center">
+              {/* removed hero micro-phrase per UX request */}
+
+              <h1
+                className="text-5xl md:text-7xl lg:text-8xl font-extrabold text-white tracking-tight mb-6 drop-shadow-2xl leading-tight max-w-5xl animate-fade-in-up"
+                style={{ animationDelay: "100ms" }}
+              >
+                Find Your Perfect <br className="hidden md:block" />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-300 via-emerald-200 to-teal-100">
+                  Escape
+                </span>
+              </h1>
+
+              <p
+                className="text-lg md:text-2xl text-white/90 font-light mb-14 max-w-2xl drop-shadow-md animate-fade-in-up"
+                style={{ animationDelay: "200ms" }}
+              >
+                Curated stays and unforgettable experiences in the heart of
+                Nepal.
+              </p>
+
+              {/* Glassmorphic Search Bar */}
+              <div
+                className="w-full max-w-3xl bg-white/10 backdrop-blur-xl p-2 rounded-full border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.3)] flex items-center transition-all duration-300 focus-within:bg-white/20 focus-within:border-white/40 animate-fade-in-up hover:shadow-[0_8px_40px_rgba(0,0,0,0.4)]"
+                style={{ animationDelay: "300ms" }}
+              >
+                <div className="pl-6 pr-3">
+                  <Search className="text-white/80" size={24} />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Where do you want to go?"
+                  className="w-full bg-transparent border-none text-white placeholder-white/70 text-lg py-4 focus:outline-none focus:ring-0 font-medium"
+                  value={search}
+                  onChange={handleSearch}
+                />
+                <button
+                  onClick={handleExploreNow}
+                  className="bg-teal-500 hover:bg-teal-400 text-white px-8 md:px-10 py-4 rounded-full font-bold text-lg transition-all duration-300 hover:shadow-[0_0_20px_rgba(20,184,166,0.4)] hover:scale-105 shrink-0 flex items-center gap-2"
+                >
+                  Explore <ChevronRight size={20} className="hidden md:block" />
+                </button>
+              </div>
+            </div>
           </div>
         </section>
 
-        {/* For You Section */}
-        <section id="for-you-section" className="mb-12 scroll-mt-24">
-          {!loadedOnce && !loading && accommodations.length === 0 && (
-            <div className="text-sm text-gray-500 mb-4">
-              Showing a smaller preview first to keep the page responsive.
+        {/* Featured Section */}
+        <section
+          id="for-you-section"
+          className="w-full max-w-[1400px] px-4 md:px-8 py-24 scroll-mt-10"
+        >
+          <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
+            <div>
+              <h2 className="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight mb-4">
+                Curated For You
+              </h2>
+              <p className="text-slate-500 text-lg md:text-xl font-light">
+                Handpicked stays that match your unique style.
+              </p>
             </div>
-          )}
-          <h3 className="text-2xl font-bold mb-6">For You</h3>
+          </div>
+
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {Array.from({ length: 3 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="animate-pulse bg-gray-100 rounded-2xl h-64"
-                />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="flex flex-col gap-4 animate-pulse">
+                  <div className="w-full h-72 bg-slate-200/60 rounded-[2rem]" />
+                  <div className="flex justify-between items-center px-2">
+                    <div className="w-2/3 h-5 bg-slate-200/60 rounded-full" />
+                    <div className="w-1/6 h-5 bg-slate-200/60 rounded-full" />
+                  </div>
+                  <div className="w-1/2 h-4 bg-slate-200/60 rounded-full mx-2" />
+                </div>
               ))}
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-32 bg-amber-50 rounded-[3rem] border border-amber-100 shadow-sm">
+              <div className="w-24 h-24 bg-amber-100 rounded-full flex items-center justify-center mb-6 shadow-inner">
+                <Search size={40} className="text-amber-500" />
+              </div>
+              <h3 className="text-3xl font-bold text-slate-800 mb-3">
+                We couldn&apos;t load accommodations
+              </h3>
+              <p className="text-slate-500 text-lg max-w-md text-center">
+                {error}
+              </p>
             </div>
           ) : accommodations.length === 0 ? (
-            <div className="text-center py-10 text-gray-400">
-              No accommodations found. Try searching or check back later!
+            <div className="flex flex-col items-center justify-center py-32 bg-slate-50 rounded-[3rem] border border-slate-100 shadow-sm">
+              <div className="w-24 h-24 bg-teal-50 rounded-full flex items-center justify-center mb-6 shadow-inner">
+                <Search size={40} className="text-teal-400" />
+              </div>
+              <h3 className="text-3xl font-bold text-slate-800 mb-3">
+                No matches found
+              </h3>
+              <p className="text-slate-500 text-lg max-w-md text-center">
+                We couldn't find any accommodations matching your search. Try
+                adjusting your destination.
+              </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {accommodations.map((acc) => (
-                <Link
-                  key={acc._id}
-                  href={`/accommodations/${acc._id}`}
-                  className="bg-white rounded-2xl border border-gray-100 shadow-lg overflow-hidden flex flex-col hover:shadow-xl transition-shadow"
-                  title={acc.name}
-                >
-                  <div className="h-48 relative">
-                    {(() => {
-                      const imgSrc =
-                        acc.images && acc.images.length > 0
-                          ? acc.images[0].startsWith("http")
-                            ? acc.images[0]
-                            : `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}${acc.images[0]}`
-                          : "/images/main-section.png";
-                      const isLocal =
-                        imgSrc.startsWith("/images/") ||
-                        imgSrc.startsWith("/_next/");
-                      if (isLocal) {
-                        return (
-                          <Image
-                            src={imgSrc}
-                            alt={acc.name}
-                            fill
-                            className="object-cover"
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                            loading="eager"
-                          />
-                        );
-                      } else {
-                        return (
-                          <img
-                            src={imgSrc}
-                            alt={acc.name}
-                            loading="eager"
-                            decoding="async"
-                            style={{
-                              width: "100%",
-                              height: "100%",
-                              objectFit: "cover",
-                            }}
-                          />
-                        );
-                      }
-                    })()}
-                  </div>
-                  <div className="p-4 flex flex-col grow">
-                    <div className="flex justify-between items-start mb-1">
-                      <h4
-                        className="font-bold text-lg leading-tight line-clamp-1"
-                        title={acc.name}
-                      >
-                        {acc.name}
-                      </h4>
-                      <span className="flex items-center text-xs font-bold gap-1 shrink-0">
-                        <Star
-                          size={14}
-                          className="fill-yellow-400 text-yellow-400"
-                        />
-                        {acc.rating?.toFixed(1) ?? "-"}
-                      </span>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+              {accommodations.map((acc) => {
+                const displayTitle = acc.title || acc.name || "Accommodation";
+                const displayDescription =
+                  acc.description ||
+                  acc.overview ||
+                  "Experience an unforgettable stay with premium amenities.";
+
+                return (
+                  <Link
+                    key={acc._id}
+                    href={`/accommodations/${acc._id}`}
+                    className="group flex flex-col bg-white rounded-[2rem] overflow-hidden shadow-sm hover:shadow-[0_20px_40px_rgba(0,0,0,0.08)] transition-all duration-500 border border-slate-100 hover:-translate-y-2"
+                  >
+                    <div className="relative h-72 w-full overflow-hidden p-3 pb-0">
+                      <div className="relative w-full h-full rounded-[1.5rem] overflow-hidden bg-slate-100">
+                        {(() => {
+                          const imgSrc = normalizeImageUrl(acc.images?.[0]);
+                          const fallback = "/images/main-section.png";
+
+                          return (
+                            <img
+                              src={imgSrc}
+                              alt={displayTitle}
+                              onError={(e) => {
+                                const t = e.currentTarget as HTMLImageElement;
+                                if (t.src !== fallback) t.src = fallback;
+                              }}
+                              className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+                            />
+                          );
+                        })()}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+                        {/* Price Badge */}
+                        <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-xl font-bold text-slate-800 shadow-sm transition-transform duration-300 group-hover:scale-105">
+                          <span className="text-xs text-slate-500 font-medium mr-1">
+                            Rs
+                          </span>
+                          {acc.pricePerNight}
+                          <span className="text-xs font-normal text-slate-500 ml-1">
+                            / night
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <p
-                      className="text-xs text-[#0c7272] mb-2 font-medium line-clamp-1"
-                      title={acc.address}
-                    >
-                      {acc.address}
-                    </p>
-                    <p className="text-[11px] text-gray-600 leading-relaxed line-clamp-3">
-                      {acc.overview}
-                    </p>
-                  </div>
-                </Link>
-              ))}
+
+                    <div className="p-6 flex flex-col grow">
+                      <div className="flex justify-between items-start mb-3 gap-3">
+                        <h4
+                          className="font-bold text-xl text-slate-800 leading-tight line-clamp-1 group-hover:text-teal-600 transition-colors duration-300"
+                          title={displayTitle}
+                        >
+                          {displayTitle}
+                        </h4>
+                        <div className="flex items-center gap-1.5 bg-amber-50 px-2.5 py-1 rounded-lg shrink-0 border border-amber-100">
+                          <Star
+                            size={14}
+                            className="fill-amber-400 text-amber-500"
+                          />
+                          <span className="text-sm font-bold text-amber-700">
+                            {acc.totalReviews === 0
+                              ? "New"
+                              : acc.rating?.toFixed(1)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 text-slate-500 mb-4 text-sm font-medium">
+                        <MapPin size={16} className="text-teal-500 shrink-0" />
+                        <p className="line-clamp-1" title={acc.address}>
+                          {acc.address}
+                        </p>
+                      </div>
+
+                      <p className="text-sm text-slate-500/90 leading-relaxed line-clamp-2 mt-auto font-light">
+                        {displayDescription}
+                      </p>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           )}
         </section>

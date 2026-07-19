@@ -33,7 +33,7 @@ export default function ForgotPasswordPage() {
             className="inline-flex items-center gap-2 text-green-800 mb-4"
           >
             <ShieldCheck size={32} />
-            <span className="text-2xl font-bold">NepalStay-Hub</span>
+            <span className="text-2xl font-bold">NepalStayHub</span>
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">
             Reset your password

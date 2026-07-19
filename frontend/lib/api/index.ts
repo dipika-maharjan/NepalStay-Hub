@@ -1,9 +1,22 @@
 import axios from "axios";
+import { getAuthToken } from "../cookie";
+
+const backendUrl = (
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5051"
+).replace(/\/api\/?$/, "");
 
 const api = axios.create({
-  baseURL: "/api",
+  baseURL: backendUrl,
   withCredentials: true,
   headers: { "Content-Type": "application/json" },
+});
+
+api.interceptors.request.use(async (config) => {
+  const token = await getAuthToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
 api.interceptors.response.use(

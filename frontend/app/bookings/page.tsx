@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import Navbar from "@/app/_components/Navbar";
+import Navbar from "@/app/components/navbar/Navbar";
 import api from "@/lib/api";
+import { normalizeImageUrl } from "@/lib/image";
 import useAuth from "@/context/AuthContext";
 
 interface BookingItem {
@@ -121,17 +122,6 @@ export default function BookingsPage() {
     }
   };
 
-  const buildImageUrl = (images?: string[]) => {
-    if (!images?.length) {
-      return "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=900&q=80";
-    }
-
-    const firstImage = images[0];
-    return firstImage.startsWith("http")
-      ? firstImage
-      : `http://localhost:5050${firstImage}`;
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -211,7 +201,10 @@ export default function BookingsPage() {
                 <article key={booking._id} className="card overflow-hidden p-0">
                   <div className="flex flex-col md:flex-row">
                     <img
-                      src={buildImageUrl(booking.accommodationId?.images)}
+                      src={normalizeImageUrl(
+                        booking.accommodationId?.images?.[0],
+                        "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=900&q=80",
+                      )}
                       alt={booking.accommodationId?.title || "Accommodation"}
                       className="h-56 w-full object-cover md:h-auto md:w-72"
                     />

@@ -10,7 +10,6 @@ import accommodationRoutes from "./routes/accommodation.route";
 import bookingRoutes from "./routes/booking.route";
 import reviewRoutes from "./routes/review.route";
 import paymentRoutes from "./routes/payment.route";
-import hostVerificationRoutes from "./routes/hostVerification.route";
 import roomTypeRoutes from "./routes/roomType.route";
 import optionalExtraRoutes from "./routes/optionalExtra.route";
 import { adminUserRoutes } from "./routes/admin/user.route";
@@ -111,7 +110,6 @@ app.use("/api/optional-extras", optionalExtraRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/payments", paymentRoutes);
-app.use("/api/host-verification", hostVerificationRoutes);
 app.use("/api/admin/users", adminUserRoutes);
 app.use("/api/admin/ip-blocks", ipBlockRoutes);
 

@@ -4,24 +4,24 @@ import {
   createRoomType,
   updateRoomType,
   deleteRoomType,
+  getAllRoomTypes,
 } from "../controllers/roomType.controller";
 import {
   requireAuth,
   requireRole,
-  requireHostVerified,
 } from "../middleware/auth.middleware";
 
 const router = Router();
 
+router.get("/", requireAuth, requireRole("admin"), getAllRoomTypes);
 router.get("/:accommodationId", getRoomTypesByAccommodation);
 router.post(
   "/",
   requireAuth,
-  requireRole("host"),
-  requireHostVerified,
+  requireRole("admin"),
   createRoomType,
 );
-router.put("/:id", requireAuth, requireRole("host"), updateRoomType);
-router.delete("/:id", requireAuth, requireRole("host"), deleteRoomType);
+router.put("/:id", requireAuth, requireRole("admin"), updateRoomType);
+router.delete("/:id", requireAuth, requireRole("admin"), deleteRoomType);
 
 export default router;

@@ -50,6 +50,29 @@ export const getRoomTypesByAccommodation = async (
   }
 };
 
+export const getAllRoomTypes = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const includeInactive = req.query.includeInactive === "true";
+    let filter: any = {};
+    if (!includeInactive) filter.isActive = true;
+
+    const roomTypes = await RoomTypeModel.find(filter)
+      .populate("accommodationId", "name")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      message: "Room types fetched successfully",
+      data: roomTypes,
+    });
+  } catch {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 export const createRoomType = async (
   req: AuthRequest,
   res: Response,
@@ -62,7 +85,14 @@ export const createRoomType = async (
       pricePerNight,
       maxGuests,
       totalRooms,
-    } = req.body as Record<string, unknown>;
+    } = req.body as {
+      accommodationId: string;
+      name: string;
+      description?: string;
+      pricePerNight: number;
+      maxGuests: number;
+      totalRooms: number;
+    };
 
     const accommodation = await getOwnedAccommodation(
       req,
@@ -123,7 +153,14 @@ export const updateRoomType = async (
       maxGuests,
       totalRooms,
       isActive,
-    } = req.body as Record<string, unknown>;
+    } = req.body as {
+      name?: string;
+      description?: string;
+      pricePerNight?: number;
+      maxGuests?: number;
+      totalRooms?: number;
+      isActive?: boolean;
+    };
 
     const updateData: Record<string, unknown> = {};
 

@@ -4,24 +4,24 @@ import {
   createExtra,
   updateExtra,
   deleteExtra,
+  getAllOptionalExtras,
 } from "../controllers/optionalExtra.controller";
 import {
   requireAuth,
   requireRole,
-  requireHostVerified,
 } from "../middleware/auth.middleware";
 
 const router = Router();
 
+router.get("/", requireAuth, requireRole("admin"), getAllOptionalExtras);
 router.get("/:accommodationId", getExtrasByAccommodation);
 router.post(
   "/",
   requireAuth,
-  requireRole("host"),
-  requireHostVerified,
+  requireRole("admin"),
   createExtra,
 );
-router.put("/:id", requireAuth, requireRole("host"), updateExtra);
-router.delete("/:id", requireAuth, requireRole("host"), deleteExtra);
+router.put("/:id", requireAuth, requireRole("admin"), updateExtra);
+router.delete("/:id", requireAuth, requireRole("admin"), deleteExtra);
 
 export default router;

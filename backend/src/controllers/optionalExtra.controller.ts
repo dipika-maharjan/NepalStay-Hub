@@ -50,13 +50,42 @@ export const getExtrasByAccommodation = async (
   }
 };
 
+export const getAllOptionalExtras = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const includeInactive = req.query.includeInactive === "true";
+    let filter: any = {};
+    if (!includeInactive) filter.isActive = true;
+
+    const extras = await OptionalExtraModel.find(filter)
+      .populate("accommodationId", "name")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      message: "Optional extras fetched successfully",
+      data: extras,
+    });
+  } catch {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 export const createExtra = async (
   req: AuthRequest,
   res: Response,
 ): Promise<void> => {
   try {
     const { accommodationId, name, description, price, priceType } =
-      req.body as Record<string, unknown>;
+      req.body as {
+        accommodationId: string;
+        name: string;
+        description?: string;
+        price: number;
+        priceType: "per_person" | "per_booking";
+      };
 
     const accommodation = await getOwnedAccommodation(
       req,
@@ -110,7 +139,13 @@ export const updateExtra = async (
     }
 
     const { name, description, price, priceType, isActive } =
-      req.body as Record<string, unknown>;
+      req.body as {
+        name?: string;
+        description?: string;
+        price?: number;
+        priceType?: "per_person" | "per_booking";
+        isActive?: boolean;
+      };
 
     const updateData: Record<string, unknown> = {};
 

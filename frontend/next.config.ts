@@ -17,11 +17,17 @@ const nextConfig: NextConfig = {
     ],
   },
   async rewrites() {
+    const backendUrl =
+      process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5051";
     return process.env.NODE_ENV === "development"
       ? [
           {
             source: "/api/:path*",
-            destination: "http://localhost:5050/api/:path*",
+            destination: `${backendUrl}/api/:path*`,
+          },
+          {
+            source: "/uploads/:path*",
+            destination: `${backendUrl}/uploads/:path*`,
           },
         ]
       : [];

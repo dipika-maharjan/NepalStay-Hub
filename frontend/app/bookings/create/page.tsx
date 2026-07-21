@@ -6,9 +6,17 @@ import { getAccommodationById } from "@/lib/api/accommodation";
 import { getRoomTypesByAccommodation } from "@/lib/api/roomType";
 import { getOptionalExtrasByAccommodation } from "@/lib/api/optionalExtra";
 import { handleCreateBooking } from "@/lib/actions/booking-action";
+import { initiateEsewaPayment } from "@/lib/api/payment";
 import { toast } from "react-toastify";
 import Link from "next/link";
-import { ArrowLeft, Calendar, Users, DoorOpen, Plus, Minus } from "lucide-react";
+import {
+  ArrowLeft,
+  Calendar,
+  Users,
+  DoorOpen,
+  Plus,
+  Minus,
+} from "lucide-react";
 import Navbar from "@/app/components/navbar/Navbar";
 import Footer from "@/app/components/footer/Footer";
 import { useAuth } from "@/context/AuthContext";
@@ -32,7 +40,8 @@ interface OptionalExtra {
 
 interface Accommodation {
   _id: string;
-  name: string;
+  title?: string;
+  name?: string;
   address: string;
   images: string[];
 }
@@ -43,11 +52,14 @@ export default function CreateBookingPage() {
   const { user, isAuthenticated } = useAuth();
   const accommodationId = searchParams.get("accommodationId");
 
-  const [accommodation, setAccommodation] = useState<Accommodation | null>(null);
+  const [accommodation, setAccommodation] = useState<Accommodation | null>(
+    null,
+  );
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [optionalExtras, setOptionalExtras] = useState<OptionalExtra[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [paymentChoice, setPaymentChoice] = useState<"pay_now" | "pay_later">("pay_now");
 
   // Form state
   const [selectedRoomType, setSelectedRoomType] = useState("");
@@ -55,13 +67,17 @@ export default function CreateBookingPage() {
   const [checkOut, setCheckOut] = useState("");
   const [guests, setGuests] = useState(1);
   const [roomsBooked, setRoomsBooked] = useState(1);
-  const [selectedExtras, setSelectedExtras] = useState<{ [key: string]: number }>({});
+  const [selectedExtras, setSelectedExtras] = useState<{
+    [key: string]: number;
+  }>({});
   const [specialRequest, setSpecialRequest] = useState("");
 
   useEffect(() => {
     if (!isAuthenticated) {
       toast.error("Please login to make a booking");
-      router.push(`/login?redirect=/bookings/create?accommodationId=${accommodationId}`);
+      router.push(
+        `/login?redirect=/bookings/create?accommodationId=${accommodationId}`,
+      );
       return;
     }
     if (!accommodationId) {
@@ -82,17 +98,23 @@ export default function CreateBookingPage() {
 
       if (accommodationRes.success) {
         setAccommodation(
-          Array.isArray(accommodationRes.data) ? accommodationRes.data[0] || null : accommodationRes.data
+          Array.isArray(accommodationRes.data)
+            ? accommodationRes.data[0] || null
+            : accommodationRes.data,
         );
       }
 
       if (roomTypesRes.success) {
-        const list: RoomType[] = Array.isArray(roomTypesRes.data) ? roomTypesRes.data : [roomTypesRes.data];
+        const list: RoomType[] = Array.isArray(roomTypesRes.data)
+          ? roomTypesRes.data
+          : [roomTypesRes.data];
         setRoomTypes(list.filter((rt: RoomType) => rt.totalRooms > 0));
       }
 
       if (extrasRes.success) {
-        const list: OptionalExtra[] = Array.isArray(extrasRes.data) ? extrasRes.data : [extrasRes.data];
+        const list: OptionalExtra[] = Array.isArray(extrasRes.data)
+          ? extrasRes.data
+          : [extrasRes.data];
         setOptionalExtras(list);
       }
     } catch (error: any) {
@@ -106,14 +128,16 @@ export default function CreateBookingPage() {
     if (!checkIn || !checkOut) return 0;
     const start = new Date(checkIn);
     const end = new Date(checkOut);
-    const diffDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    const diffDays = Math.ceil(
+      (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
+    );
     return diffDays > 0 ? diffDays : 0;
   };
 
   const calculateExtrasTotal = () => {
     let extrasTotal = 0;
     Object.entries(selectedExtras).forEach(([extraId, qty]) => {
-      const extra = optionalExtras.find(e => e._id === extraId);
+      const extra = optionalExtras.find((e) => e._id === extraId);
       if (!extra || qty <= 0) return;
       if (extra.priceType === "per_person") {
         extrasTotal += extra.price * guests * qty;
@@ -127,7 +151,7 @@ export default function CreateBookingPage() {
   const calculateRoomTotal = () => {
     const nights = calculateNights();
     if (!selectedRoomType || nights === 0) return 0;
-    const room = roomTypes.find(rt => rt._id === selectedRoomType);
+    const room = roomTypes.find((rt) => rt._id === selectedRoomType);
     if (!room) return 0;
     return room.pricePerNight * roomsBooked * nights;
   };
@@ -146,7 +170,7 @@ export default function CreateBookingPage() {
   };
 
   const handleExtraQuantityChange = (extraId: string, change: number) => {
-    setSelectedExtras(prev => {
+    setSelectedExtras((prev) => {
       const current = prev[extraId] || 0;
       const newValue = Math.max(0, current + change);
       if (newValue === 0) {
@@ -160,7 +184,7 @@ export default function CreateBookingPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const nights = calculateNights();
-    const roomType = roomTypes.find(rt => rt._id === selectedRoomType);
+    const roomType = roomTypes.find((rt) => rt._id === selectedRoomType);
 
     if (!selectedRoomType || !checkIn || !checkOut || nights <= 0) {
       toast.error("Please fill all required fields with valid dates");
@@ -175,7 +199,10 @@ export default function CreateBookingPage() {
     setSubmitting(true);
 
     try {
-      const extras = Object.entries(selectedExtras).map(([extraId, qty]) => ({ extraId, quantity: qty }));
+      const extras = Object.entries(selectedExtras).map(([extraId, qty]) => ({
+        extraId,
+        quantity: qty,
+      }));
       const payload = {
         accommodationId: accommodationId!,
         roomTypeId: selectedRoomType,
@@ -191,8 +218,33 @@ export default function CreateBookingPage() {
       const response = await handleCreateBooking(payload);
 
       if (response.success) {
-        toast.success("Booking created successfully!");
-        router.push("/user/bookings");
+        if (paymentChoice === "pay_now") {
+          toast.success("Booking created successfully! Redirecting to payment...");
+          try {
+            const paymentRes = await initiateEsewaPayment(totalPrice, response.data._id);
+            
+            const form = document.createElement("form");
+            form.method = "POST";
+            form.action = paymentRes.esewaUrl;
+            
+            for (const key in paymentRes.formData) {
+                const input = document.createElement("input");
+                input.type = "hidden";
+                input.name = key;
+                input.value = paymentRes.formData[key];
+                form.appendChild(input);
+            }
+            
+            document.body.appendChild(form);
+            form.submit();
+          } catch (paymentErr) {
+            toast.error("Failed to initiate eSewa payment. You can pay later.");
+            router.push("/user/bookings");
+          }
+        } else {
+          toast.success("Booking created successfully!");
+          router.push("/user/bookings");
+        }
       } else {
         toast.error(response.message || "Booking failed");
       }
@@ -203,7 +255,9 @@ export default function CreateBookingPage() {
     }
   };
 
-  const selectedRoomTypeData = roomTypes.find(rt => rt._id === selectedRoomType);
+  const selectedRoomTypeData = roomTypes.find(
+    (rt) => rt._id === selectedRoomType,
+  );
   const nights = calculateNights();
   const roomTotal = calculateRoomTotal();
   const extrasTotal = calculateExtrasTotal();
@@ -212,14 +266,25 @@ export default function CreateBookingPage() {
   const totalPrice = calculateTotalPrice();
   const minDate = new Date().toISOString().split("T")[0];
 
-  if (loading) return <div className="min-h-screen flex justify-center items-center">Loading...</div>;
-  if (!accommodation) return <div className="min-h-screen text-center">Accommodation not found</div>;
+  if (loading)
+    return (
+      <div className="min-h-screen flex justify-center items-center">
+        Loading...
+      </div>
+    );
+  if (!accommodation)
+    return (
+      <div className="min-h-screen text-center">Accommodation not found</div>
+    );
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       <main className="max-w-6xl mx-auto px-4 py-8">
-        <Link href={`/accommodations/${accommodationId}`} className="inline-flex items-center gap-2 text-[#0c7272] mb-6">
+        <Link
+          href={`/accommodations/${accommodationId}`}
+          className="inline-flex items-center gap-2 text-[#0c7272] mb-6"
+        >
           <ArrowLeft size={20} /> Back to Accommodation
         </Link>
 
@@ -227,70 +292,161 @@ export default function CreateBookingPage() {
           {/* Booking Form */}
           <div className="lg:col-span-2 bg-white rounded-xl shadow-md p-6">
             <h1 className="text-2xl font-bold mb-2">Complete Your Booking</h1>
-            <p className="text-gray-600 mb-6">{accommodation.name}</p>
+            <p className="text-gray-600 mb-6">
+              {accommodation.title || accommodation.name || "Accommodation"}
+            </p>
 
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Room Type */}
               <div>
-                <label className="block text-sm font-semibold mb-2">Select Room Type *</label>
+                <label className="block text-sm font-semibold mb-2">
+                  Select Room Type *
+                </label>
                 <select
                   value={selectedRoomType}
-                  onChange={e => setSelectedRoomType(e.target.value)}
+                  onChange={(e) => setSelectedRoomType(e.target.value)}
                   className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#0c7272]"
                   required
                 >
                   <option value="">Choose a room type</option>
                   {roomTypes.map((rt: RoomType) => (
                     <option key={rt._id} value={rt._id}>
-                      {rt.name} | Rs. {rt.pricePerNight.toLocaleString()}/night | Max {rt.maxGuests} guests | {rt.totalRooms} rooms available
+                      {rt.name} | Rs. {rt.pricePerNight.toLocaleString()}/night
+                      | Max {rt.maxGuests} guests | {rt.totalRooms} rooms
+                      available
                     </option>
                   ))}
                 </select>
-                {selectedRoomTypeData?.description && <p className="text-sm text-gray-600 mt-2">{selectedRoomTypeData.description}</p>}
+                {selectedRoomTypeData?.description && (
+                  <p className="text-sm text-gray-600 mt-2">
+                    {selectedRoomTypeData.description}
+                  </p>
+                )}
               </div>
 
               {/* Dates */}
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold mb-2"><Calendar className="inline mr-2" size={16} />Check-in Date *</label>
-                  <input type="date" value={checkIn} onChange={e => setCheckIn(e.target.value)} min={minDate} className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#0c7272]" required />
+                  <label className="block text-sm font-semibold mb-2">
+                    <Calendar className="inline mr-2" size={16} />
+                    Check-in Date *
+                  </label>
+                  <input
+                    type="date"
+                    value={checkIn}
+                    onChange={(e) => setCheckIn(e.target.value)}
+                    min={minDate}
+                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#0c7272]"
+                    required
+                  />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2"><Calendar className="inline mr-2" size={16} />Check-out Date *</label>
-                  <input type="date" value={checkOut} onChange={e => setCheckOut(e.target.value)} min={checkIn || minDate} className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#0c7272]" required />
+                  <label className="block text-sm font-semibold mb-2">
+                    <Calendar className="inline mr-2" size={16} />
+                    Check-out Date *
+                  </label>
+                  <input
+                    type="date"
+                    value={checkOut}
+                    onChange={(e) => setCheckOut(e.target.value)}
+                    min={checkIn || minDate}
+                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#0c7272]"
+                    required
+                  />
                 </div>
               </div>
 
-              {nights > 0 && <p className="text-sm text-gray-600">{nights} {nights === 1 ? 'night' : 'nights'}</p>}
+              {nights > 0 && (
+                <p className="text-sm text-gray-600">
+                  {nights} {nights === 1 ? "night" : "nights"}
+                </p>
+              )}
 
               {/* Guests and Rooms */}
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold mb-2"><Users className="inline mr-2" size={16} />Number of Guests *</label>
-                  <input type="number" value={guests} onChange={e => setGuests(Math.max(1, parseInt(e.target.value) || 1))} min={1} className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#0c7272]" required />
+                  <label className="block text-sm font-semibold mb-2">
+                    <Users className="inline mr-2" size={16} />
+                    Number of Guests *
+                  </label>
+                  <input
+                    type="number"
+                    value={guests}
+                    onChange={(e) =>
+                      setGuests(Math.max(1, parseInt(e.target.value) || 1))
+                    }
+                    min={1}
+                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#0c7272]"
+                    required
+                  />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2"><DoorOpen className="inline mr-2" size={16} />Number of Rooms *</label>
-                  <input type="number" value={roomsBooked} onChange={e => setRoomsBooked(Math.max(1, parseInt(e.target.value) || 1))} min={1} max={selectedRoomTypeData?.totalRooms} className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#0c7272]" required />
+                  <label className="block text-sm font-semibold mb-2">
+                    <DoorOpen className="inline mr-2" size={16} />
+                    Number of Rooms *
+                  </label>
+                  <input
+                    type="number"
+                    value={roomsBooked}
+                    onChange={(e) =>
+                      setRoomsBooked(Math.max(1, parseInt(e.target.value) || 1))
+                    }
+                    min={1}
+                    max={selectedRoomTypeData?.totalRooms}
+                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#0c7272]"
+                    required
+                  />
                 </div>
               </div>
 
               {/* Extras */}
               {optionalExtras.length > 0 && (
                 <div>
-                  <label className="block text-sm font-semibold mb-3">Optional Extras</label>
+                  <label className="block text-sm font-semibold mb-3">
+                    Optional Extras
+                  </label>
                   <div className="space-y-3">
                     {optionalExtras.map((extra: OptionalExtra) => (
-                      <div key={extra._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div
+                        key={extra._id}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                      >
                         <div className="flex-1">
                           <p className="font-medium">{extra.name}</p>
-                          <p className="text-sm text-gray-600">Rs. {extra.price.toLocaleString()} {extra.priceType === "per_person" ? "per person" : "per booking"}</p>
-                          {extra.description && <p className="text-xs text-gray-500 mt-1">{extra.description}</p>}
+                          <p className="text-sm text-gray-600">
+                            Rs. {extra.price.toLocaleString()}{" "}
+                            {extra.priceType === "per_person"
+                              ? "per person"
+                              : "per booking"}
+                          </p>
+                          {extra.description && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              {extra.description}
+                            </p>
+                          )}
                         </div>
                         <div className="flex items-center gap-2">
-                          <button type="button" onClick={() => handleExtraQuantityChange(extra._id, -1)} className="p-1 rounded-full bg-gray-200 hover:bg-gray-300"><Minus size={16} /></button>
-                          <span className="w-8 text-center font-medium">{selectedExtras[extra._id] || 0}</span>
-                          <button type="button" onClick={() => handleExtraQuantityChange(extra._id, 1)} className="p-1 rounded-full bg-[#0c7272] hover:bg-[#134e4a] text-white"><Plus size={16} /></button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleExtraQuantityChange(extra._id, -1)
+                            }
+                            className="p-1 rounded-full bg-gray-200 hover:bg-gray-300"
+                          >
+                            <Minus size={16} />
+                          </button>
+                          <span className="w-8 text-center font-medium">
+                            {selectedExtras[extra._id] || 0}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleExtraQuantityChange(extra._id, 1)
+                            }
+                            className="p-1 rounded-full bg-[#0c7272] hover:bg-[#134e4a] text-white"
+                          >
+                            <Plus size={16} />
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -300,12 +456,61 @@ export default function CreateBookingPage() {
 
               {/* Special Requests */}
               <div>
-                <label className="block text-sm font-semibold mb-2">Special Requests (Optional)</label>
-                <textarea value={specialRequest} onChange={e => setSpecialRequest(e.target.value)} rows={3} placeholder="Any special requests or requirements..." className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#0c7272]" />
+                <label className="block text-sm font-semibold mb-2">
+                  Special Requests (Optional)
+                </label>
+                <textarea
+                  value={specialRequest}
+                  onChange={(e) => setSpecialRequest(e.target.value)}
+                  rows={3}
+                  placeholder="Any special requests or requirements..."
+                  className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#0c7272]"
+                />
               </div>
 
-              <button type="submit" disabled={submitting || !selectedRoomType || nights <= 0} className="w-full bg-[#0c7272] text-white py-3 rounded-lg font-semibold hover:bg-[#134e4a] disabled:opacity-50 disabled:cursor-not-allowed">
-                {submitting ? "Processing..." : "Confirm Booking"}
+              {/* Payment Choice */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <label className="block text-sm font-semibold mb-3">
+                  Payment Option
+                </label>
+                <div className="space-y-3">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="paymentChoice"
+                      value="pay_now"
+                      checked={paymentChoice === "pay_now"}
+                      onChange={() => setPaymentChoice("pay_now")}
+                      className="w-4 h-4 text-[#0c7272] focus:ring-[#0c7272]"
+                    />
+                    <div>
+                      <p className="font-medium">Book and Pay with eSewa Now</p>
+                      <p className="text-xs text-gray-500">Redirects securely to eSewa to complete your payment.</p>
+                    </div>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="paymentChoice"
+                      value="pay_later"
+                      checked={paymentChoice === "pay_later"}
+                      onChange={() => setPaymentChoice("pay_later")}
+                      className="w-4 h-4 text-[#0c7272] focus:ring-[#0c7272]"
+                    />
+                    <div>
+                      <p className="font-medium">Book and Pay Later</p>
+                      <p className="text-xs text-gray-500">Secure your booking now and pay later from your bookings dashboard.</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={submitting || !selectedRoomType || nights <= 0}
+                className="w-full bg-[#0c7272] text-white py-3 rounded-lg font-semibold hover:bg-[#134e4a] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitting ? "Processing..." : (paymentChoice === "pay_now" ? "Confirm & Pay with eSewa" : "Confirm Booking")}
               </button>
             </form>
           </div>
@@ -315,17 +520,38 @@ export default function CreateBookingPage() {
             <h2 className="text-xl font-bold mb-4">Booking Summary</h2>
             {selectedRoomTypeData && (
               <div className="space-y-2 text-sm">
-                <div className="flex justify-between"><span>Room Type:</span><span className="font-medium">{selectedRoomTypeData.name}</span></div>
-                <div className="flex justify-between"><span>Price per night:</span><span className="font-medium">Rs. {selectedRoomTypeData.pricePerNight.toLocaleString()}</span></div>
-                <div className="flex justify-between"><span>Nights:</span><span className="font-medium">{nights}</span></div>
-                <div className="flex justify-between"><span>Rooms:</span><span className="font-medium">{roomsBooked}</span></div>
-                <div className="flex justify-between"><span>Guests:</span><span className="font-medium">{guests}</span></div>
+                <div className="flex justify-between">
+                  <span>Room Type:</span>
+                  <span className="font-medium">
+                    {selectedRoomTypeData.name}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Price per night:</span>
+                  <span className="font-medium">
+                    Rs. {selectedRoomTypeData.pricePerNight.toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Nights:</span>
+                  <span className="font-medium">{nights}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Rooms:</span>
+                  <span className="font-medium">{roomsBooked}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Guests:</span>
+                  <span className="font-medium">{guests}</span>
+                </div>
 
                 {Object.keys(selectedExtras).length > 0 && (
                   <div className="pt-2 border-t border-gray-200">
                     <p className="font-medium">Extras:</p>
                     {Object.entries(selectedExtras).map(([extraId, qty]) => {
-                      const extra = optionalExtras.find(e => e._id === extraId);
+                      const extra = optionalExtras.find(
+                        (e) => e._id === extraId,
+                      );
                       if (!extra || qty === 0) return null;
                       let extraTotal = 0;
                       if (extra.priceType === "per_person") {
@@ -333,7 +559,17 @@ export default function CreateBookingPage() {
                       } else {
                         extraTotal = extra.price * qty;
                       }
-                      return <div key={extraId} className="flex justify-between text-xs"><span>{extra.name} × {qty}</span><span>Rs. {extraTotal.toLocaleString()}</span></div>;
+                      return (
+                        <div
+                          key={extraId}
+                          className="flex justify-between text-xs"
+                        >
+                          <span>
+                            {extra.name} × {qty}
+                          </span>
+                          <span>Rs. {extraTotal.toLocaleString()}</span>
+                        </div>
+                      );
                     })}
                     <div className="flex justify-between text-xs font-semibold mt-1">
                       <span>Extras Subtotal</span>
@@ -355,7 +591,9 @@ export default function CreateBookingPage() {
                 {/* Grand total */}
                 <div className="pt-3 border-t border-gray-200 flex justify-between text-lg font-bold">
                   <span>Total:</span>
-                  <span className="text-[#0c7272]">Rs. {totalPrice.toLocaleString()}</span>
+                  <span className="text-[#0c7272]">
+                    Rs. {totalPrice.toLocaleString()}
+                  </span>
                 </div>
               </div>
             )}

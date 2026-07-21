@@ -10,7 +10,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
         {/* Left Side */}
         <div className="md:w-1/2 bg-[#0C7272] p-12 flex flex-col items-center justify-center text-white text-center">
-          <h1 className="text-4xl font-bold italic mb-4">TripWiseNepal</h1>
+          <h1 className="text-4xl font-bold italic mb-4">NepalStayHub</h1>
           <div className="mb-6">
             <EarthIcon size={48} className="opacity-90" />
           </div>

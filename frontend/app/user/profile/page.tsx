@@ -4,6 +4,7 @@ import { useAuth } from "../../../context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { handleUpdateProfile } from "@/lib/actions/user-action";
+import { normalizeImageUrl } from "@/lib/image";
 import { Upload, User, Mail, UserCircle } from "lucide-react";
 
 export default function UserProfile() {
@@ -37,14 +38,9 @@ export default function UserProfile() {
         name: user.name || "",
         email: user.email || "",
       });
-      
+
       if (user.imageUrl) {
-        const finalImageUrl = user.imageUrl.startsWith("http")
-          ? user.imageUrl
-          : user.imageUrl.startsWith("/")
-            ? `http://localhost:5050${user.imageUrl}`
-            : `http://localhost:5050/uploads/${user.imageUrl}`;
-        setImagePreview(finalImageUrl);
+        setImagePreview(normalizeImageUrl(user.imageUrl));
       } else {
         setImagePreview(null);
       }
@@ -88,7 +84,7 @@ export default function UserProfile() {
       const data = new FormData();
       data.append("name", formData.name);
       data.append("email", formData.email);
-      
+
       if (imageFile) {
         data.append("image", imageFile);
       }
@@ -97,7 +93,7 @@ export default function UserProfile() {
       }
 
       const result = await handleUpdateProfile(user._id, data);
-      
+
       if (result.success) {
         setSuccess("Profile updated successfully!");
         setIsEditing(false);
@@ -120,14 +116,9 @@ export default function UserProfile() {
         name: user.name || "",
         email: user.email || "",
       });
-      
+
       if (user.imageUrl) {
-        const finalImageUrl = user.imageUrl.startsWith("http")
-          ? user.imageUrl
-          : user.imageUrl.startsWith("/")
-            ? `http://localhost:5050${user.imageUrl}`
-            : `http://localhost:5050/uploads/${user.imageUrl}`;
-        setImagePreview(finalImageUrl);
+        setImagePreview(normalizeImageUrl(user.imageUrl));
       } else {
         setImagePreview(null);
       }
@@ -140,9 +131,7 @@ export default function UserProfile() {
   };
 
   if (loading) {
-    return (
-      <div className="text-center py-10">Loading...</div>
-    );
+    return <div className="text-center py-10">Loading...</div>;
   }
 
   if (!isAuthenticated) {
@@ -151,11 +140,11 @@ export default function UserProfile() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <main className="px-6 py-8 max-w-4xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-sm border p-8">
+      <main className="px-4 sm:px-6 py-8 max-w-4xl mx-auto">
+        <div className="bg-white rounded-2xl shadow-sm border p-4 sm:p-8">
           {/* Header */}
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-800">My Profile</h1>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-800">My Profile</h1>
             {!isEditing && (
               <button
                 onClick={() => setIsEditing(true)}
@@ -186,10 +175,10 @@ export default function UserProfile() {
                   <img
                     src={imagePreview}
                     alt="Profile"
-                    className="w-32 h-32 rounded-full object-cover border-4 border-[#0c7272]"
+                    className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover border-4 border-[#0c7272]"
                   />
                 ) : (
-                  <div className="w-32 h-32 rounded-full border-4 border-[#0c7272] bg-[#0c7272] text-white flex items-center justify-center font-bold text-5xl">
+                  <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-[#0c7272] bg-[#0c7272] text-white flex items-center justify-center font-bold text-3xl sm:text-5xl">
                     {user?.name?.charAt(0).toUpperCase() || "U"}
                   </div>
                 )}
@@ -214,10 +203,12 @@ export default function UserProfile() {
                   <p className="text-sm text-gray-500">
                     Click the icon to upload a new profile picture
                   </p>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-3">
                     <button
                       type="button"
-                      onClick={() => document.getElementById("image-upload")?.click()}
+                      onClick={() =>
+                        document.getElementById("image-upload")?.click()
+                      }
                       className="px-4 py-2 text-sm font-medium border border-[#0c7272] text-[#0c7272] rounded-lg hover:bg-[#0c7272]/10 transition"
                     >
                       Change Photo
@@ -275,11 +266,11 @@ export default function UserProfile() {
 
             {/* Action Buttons */}
             {isEditing && (
-              <div className="flex gap-4 mt-8">
+              <div className="flex flex-col sm:flex-row gap-4 mt-8">
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 px-6 py-3 bg-[#0c7272] text-white rounded-lg hover:bg-[#0a5555] transition disabled:opacity-50"
+                  className="w-full sm:flex-1 px-6 py-3 bg-[#0c7272] text-white rounded-lg hover:bg-[#0a5555] transition disabled:opacity-50"
                 >
                   {saving ? "Saving..." : "Save Changes"}
                 </button>
@@ -287,7 +278,7 @@ export default function UserProfile() {
                   type="button"
                   onClick={handleCancel}
                   disabled={saving}
-                  className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition disabled:opacity-50"
+                  className="w-full sm:flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition disabled:opacity-50"
                 >
                   Cancel
                 </button>
@@ -298,7 +289,7 @@ export default function UserProfile() {
           {/* Additional Info (View Mode Only) */}
           {!isEditing && (
             <div className="mt-8 pt-6 border-t border-gray-200">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="text-gray-500">Account Type:</span>
                   <span className="ml-2 font-semibold text-gray-800">

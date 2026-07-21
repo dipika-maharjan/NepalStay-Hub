@@ -289,6 +289,33 @@ export default function BookingsPage() {
                             Cancel booking
                           </button>
                         )}
+                        {booking.paymentStatus === 'pending' && booking.status !== 'cancelled' && (
+                          <button
+                            onClick={async () => {
+                              try {
+                                const { initiateEsewaPayment } = await import("@/lib/api/payment");
+                                const paymentRes = await initiateEsewaPayment(booking.totalPrice, booking._id);
+                                const form = document.createElement("form");
+                                form.method = "POST";
+                                form.action = paymentRes.esewaUrl;
+                                for (const key in paymentRes.formData) {
+                                  const input = document.createElement("input");
+                                  input.type = "hidden";
+                                  input.name = key;
+                                  input.value = paymentRes.formData[key];
+                                  form.appendChild(input);
+                                }
+                                document.body.appendChild(form);
+                                form.submit();
+                              } catch (err: any) {
+                                toast.error(err.message || "Failed to initiate payment.");
+                              }
+                            }}
+                            className="rounded bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus:outline-none"
+                          >
+                            Pay with eSewa
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>

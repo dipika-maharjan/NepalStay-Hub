@@ -12,9 +12,14 @@ export default function CreateAccommodationForm() {
     const [loading, setLoading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [formData, setFormData] = useState({
-        name: "",
+        title: "",
         address: "",
-        overview: "",
+        description: "",
+        type: "homestay",
+        pricePerNight: "",
+        maxGuests: "",
+        bedrooms: "",
+        bathrooms: "",
         lat: "",
         lng: "",
         mapUrl: "",
@@ -79,7 +84,7 @@ export default function CreateAccommodationForm() {
         e.preventDefault();
         
         // Validation
-        if (!formData.name || !formData.address || !formData.overview) {
+        if (!formData.title || !formData.address || !formData.description || !formData.pricePerNight || !formData.maxGuests) {
             toast.error("Please fill in all required fields");
             return;
         }
@@ -127,9 +132,14 @@ export default function CreateAccommodationForm() {
             const formDataToSend = new FormData();
             
             // Add basic fields
-            formDataToSend.append('name', formData.name);
+            formDataToSend.append('title', formData.title);
             formDataToSend.append('address', formData.address);
-            formDataToSend.append('overview', formData.overview);
+            formDataToSend.append('description', formData.description);
+            formDataToSend.append('type', formData.type);
+            formDataToSend.append('pricePerNight', formData.pricePerNight);
+            formDataToSend.append('maxGuests', formData.maxGuests);
+            if (formData.bedrooms) formDataToSend.append('bedrooms', formData.bedrooms);
+            if (formData.bathrooms) formDataToSend.append('bathrooms', formData.bathrooms);
             formDataToSend.append('location', JSON.stringify({
                 lat: Number(formData.lat),
                 lng: Number(formData.lng),
@@ -177,7 +187,7 @@ export default function CreateAccommodationForm() {
             console.log('Image URLs count:', filteredUrls.length);
 
             const response = await createAccommodation(formDataToSend);
-            if (response.success) {
+            if (response.success || response.accommodation) {
                 toast.success("Accommodation created successfully!");
                 router.push("/admin/accommodations");
             }
@@ -209,17 +219,35 @@ export default function CreateAccommodationForm() {
                     
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Name <span className="text-red-500">*</span>
+                            Title <span className="text-red-500">*</span>
                         </label>
                         <input
                             type="text"
-                            name="name"
-                            value={formData.name}
+                            name="title"
+                            value={formData.title}
                             onChange={handleInputChange}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c7272]"
                             placeholder="e.g. Lodge Name"
                             required
                         />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Type <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                            name="type"
+                            value={formData.type}
+                            onChange={handleInputChange as any}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c7272] bg-white"
+                            required
+                        >
+                            <option value="homestay">Homestay</option>
+                            <option value="guesthouse">Guesthouse</option>
+                            <option value="lodge">Lodge</option>
+                            <option value="farmstay">Farmstay</option>
+                        </select>
                     </div>
 
                     <div>
@@ -239,17 +267,78 @@ export default function CreateAccommodationForm() {
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Overview <span className="text-red-500">*</span>
+                            Description <span className="text-red-500">*</span>
                         </label>
                         <textarea
-                            name="overview"
-                            value={formData.overview}
+                            name="description"
+                            value={formData.description}
                             onChange={handleInputChange}
                             rows={4}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c7272]"
                             placeholder="Describe the accommodation..."
                             required
                         />
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Price / Night (Rs) <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="number"
+                                name="pricePerNight"
+                                value={formData.pricePerNight}
+                                onChange={handleInputChange}
+                                min="0"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c7272]"
+                                placeholder="e.g. 1500"
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Max Guests <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="number"
+                                name="maxGuests"
+                                value={formData.maxGuests}
+                                onChange={handleInputChange}
+                                min="1"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c7272]"
+                                placeholder="e.g. 4"
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Bedrooms
+                            </label>
+                            <input
+                                type="number"
+                                name="bedrooms"
+                                value={formData.bedrooms}
+                                onChange={handleInputChange}
+                                min="0"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c7272]"
+                                placeholder="e.g. 2"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Bathrooms
+                            </label>
+                            <input
+                                type="number"
+                                name="bathrooms"
+                                value={formData.bathrooms}
+                                onChange={handleInputChange}
+                                min="0"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c7272]"
+                                placeholder="e.g. 1"
+                            />
+                        </div>
                     </div>
 
                 </div>

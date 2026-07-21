@@ -71,7 +71,7 @@ export default function AdminBookingDetailPage({ params }: PageProps) {
     const { booking, extras } = bookingData;
 
     return (
-        <div className="max-w-4xl mx-auto space-y-6">
+        <div className="space-y-6">
             <Link
                 href="/admin/bookings"
                 className="inline-flex items-center gap-2 text-[#0c7272] hover:text-[#0a5555]"
@@ -80,10 +80,10 @@ export default function AdminBookingDetailPage({ params }: PageProps) {
                 Back to Bookings
             </Link>
 
-            <div className="bg-white rounded-lg shadow p-6">
-                <h1 className="text-2xl font-bold text-gray-800 mb-6">Booking Details</h1>
+            <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-6">Booking Details</h1>
 
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div>
                         <h2 className="text-lg font-semibold mb-4">Guest Information</h2>
                         <div className="space-y-2">
@@ -95,7 +95,7 @@ export default function AdminBookingDetailPage({ params }: PageProps) {
                             </div>
                             <div>
                                 <span className="text-sm text-gray-600">Email:</span>
-                                <span className="ml-2 font-medium">
+                                <span className="ml-2 font-medium break-all">
                                     {typeof booking.userId === 'object' ? booking.userId.email : 'N/A'}
                                 </span>
                             </div>
@@ -107,7 +107,7 @@ export default function AdminBookingDetailPage({ params }: PageProps) {
                         <div className="space-y-2">
                             <div>
                                 <span className="text-sm text-gray-600">Booking ID:</span>
-                                <span className="ml-2 font-mono text-sm">#{booking._id.slice(-8)}</span>
+                                <span className="ml-2 font-mono text-sm break-all">#{booking._id.slice(-8)}</span>
                             </div>
                             <div>
                                 <span className="text-sm text-gray-600">Created:</span>
@@ -121,7 +121,7 @@ export default function AdminBookingDetailPage({ params }: PageProps) {
 
                 <div>
                     <h2 className="text-lg font-semibold mb-4">Accommodation Details</h2>
-                    <div className="space-y-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <span className="text-sm text-gray-600">Accommodation:</span>
                             <span className="ml-2 font-medium">
@@ -159,7 +159,7 @@ export default function AdminBookingDetailPage({ params }: PageProps) {
                             <span className="ml-2 font-medium">{booking.roomsBooked}</span>
                         </div>
                         {booking.specialRequest && (
-                            <div>
+                            <div className="sm:col-span-2">
                                 <span className="text-sm text-gray-600">Special Request:</span>
                                 <p className="mt-1 text-sm">{booking.specialRequest}</p>
                             </div>
@@ -171,10 +171,10 @@ export default function AdminBookingDetailPage({ params }: PageProps) {
 
                 <div>
                     <h2 className="text-lg font-semibold mb-4">Price Breakdown</h2>
-                    <div className="space-y-2">
+                    <div className="space-y-2 max-w-md">
                         <div className="flex justify-between">
-                            <span className="text-gray-600">Base Price ({booking.nights} nights × {booking.roomsBooked} room{booking.roomsBooked > 1 ? 's' : ''}):</span>
-                            <span className="font-medium">Rs. {booking.basePriceTotal.toFixed(2)}</span>
+                            <span className="text-gray-600 text-sm">Base Price ({booking.nights} nights × {booking.roomsBooked} room{booking.roomsBooked > 1 ? 's' : ''}):</span>
+                            <span className="font-medium text-sm">Rs. {booking.basePriceTotal?.toFixed(2)}</span>
                         </div>
                         
                         {extras && extras.length > 0 && (
@@ -185,34 +185,34 @@ export default function AdminBookingDetailPage({ params }: PageProps) {
                                         <span className="text-gray-600">
                                             {extra.name} (×{extra.quantity})
                                         </span>
-                                        <span>Rs. {extra.total.toFixed(2)}</span>
+                                        <span>Rs. {extra.total?.toFixed(2)}</span>
                                     </div>
                                 ))}
                                 <div className="flex justify-between border-t pt-2">
-                                    <span className="text-gray-600">Extras Total:</span>
-                                    <span className="font-medium">Rs. {booking.extrasTotal.toFixed(2)}</span>
+                                    <span className="text-gray-600 text-sm">Extras Total:</span>
+                                    <span className="font-medium text-sm">Rs. {booking.extrasTotal?.toFixed(2)}</span>
                                 </div>
                             </>
                         )}
 
-                        <div className="flex justify-between">
+                        <div className="flex justify-between text-sm">
                             <span className="text-gray-600">Tax (13%):</span>
-                            <span>Rs. {booking.tax.toFixed(2)}</span>
+                            <span>Rs. {booking.tax?.toFixed(2)}</span>
                         </div>
-                        <div className="flex justify-between">
+                        <div className="flex justify-between text-sm">
                             <span className="text-gray-600">Service Fee:</span>
-                            <span>Rs. {booking.serviceFee.toFixed(2)}</span>
+                            <span>Rs. {booking.serviceFee?.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between text-lg font-bold border-t pt-2">
                             <span>TOTAL:</span>
-                            <span className="text-[#0c7272]">Rs. {booking.totalPrice.toFixed(2)}</span>
+                            <span className="text-[#0c7272]">Rs. {booking.totalPrice?.toFixed(2)}</span>
                         </div>
                     </div>
                 </div>
 
                 <hr className="my-6" />
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <span className="text-sm text-gray-600">Booking Status:</span>
                         <span className={`ml-2 px-3 py-1 text-sm font-medium rounded-full ${

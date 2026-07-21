@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getMyBookings, cancelBooking } from "@/lib/api/booking";
+import { initiateEsewaPayment } from "@/lib/api/payment";
 import { toast } from "react-toastify";
 import Link from "next/link";
 import { Eye, XCircle, Calendar } from "lucide-react";
@@ -104,7 +105,7 @@ export default function MyBookingsPage() {
 
     return (
         <div className="container mx-auto px-4 py-8 space-y-6">
-            <h1 className="text-3xl font-bold text-gray-800">My Bookings</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">My Bookings</h1>
 
             {error && (
                 <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">
@@ -143,10 +144,10 @@ export default function MyBookingsPage() {
                         </div>
                     ) : (
                         visibleBookings.map((booking) => (
-                        <div key={booking._id} className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
-                            <div className="flex justify-between items-start">
-                                <div className="flex-1">
-                                    <h2 className="text-xl font-bold text-gray-800">
+                        <div key={booking._id} className="bg-white rounded-lg shadow p-4 sm:p-6 hover:shadow-lg transition">
+                            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                                <div className="flex-1 min-w-0 w-full">
+                                    <h2 className="text-lg sm:text-xl font-bold text-gray-800">
                                         {typeof booking.accommodationId === 'object' 
                                             ? booking.accommodationId.name 
                                             : 'N/A'}
@@ -157,7 +158,7 @@ export default function MyBookingsPage() {
                                             : 'N/A'}
                                     </p>
 
-                                    <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                    <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
                                         <div>
                                             <span className="text-gray-500">Check-in:</span>
                                             <div className="font-semibold">{formatDate(booking.checkIn)}</div>
@@ -176,7 +177,7 @@ export default function MyBookingsPage() {
                                         </div>
                                     </div>
 
-                                    <div className="mt-4 flex gap-3">
+                                    <div className="mt-4 flex flex-wrap gap-3">
                                         <span className={`px-3 py-1 text-xs font-medium rounded-full ${getStatusColor(booking.bookingStatus)}`}>
                                             {booking.bookingStatus}
                                         </span>
@@ -186,9 +187,8 @@ export default function MyBookingsPage() {
                                     </div>
                                 </div>
 
-                                <div className="text-right">
-                                    {/* FINAL TOTAL from backend */}
-                                    <div className="text-2xl font-bold text-[#0c7272]">
+                                <div className="text-left sm:text-right shrink-0">
+                                    <div className="text-xl sm:text-2xl font-bold text-[#0c7272]">
                                         Rs. {booking.totalPrice.toFixed(2)}
                                     </div>
                                     <div className="text-sm text-gray-500 mt-1">
@@ -197,7 +197,7 @@ export default function MyBookingsPage() {
                                 </div>
                             </div>
 
-                            <div className="mt-6 flex gap-3 border-t pt-4">
+                            <div className="mt-6 flex flex-wrap gap-3 border-t pt-4">
                                 <Link
                                     href={`/user/bookings/${booking._id}`}
                                     className="flex items-center gap-2 px-4 py-2 bg-[#0c7272] text-white rounded-lg hover:bg-[#0a5555] transition text-sm"
@@ -212,6 +212,32 @@ export default function MyBookingsPage() {
                                     >
                                         Edit Booking
                                     </Link>
+                                )}
+                                {booking.paymentStatus === 'pending' && booking.bookingStatus !== 'cancelled' && (
+                                    <button
+                                        onClick={async () => {
+                                            try {
+                                                const paymentRes = await initiateEsewaPayment(booking.totalPrice, booking._id);
+                                                const form = document.createElement("form");
+                                                form.method = "POST";
+                                                form.action = paymentRes.esewaUrl;
+                                                for (const key in paymentRes.formData) {
+                                                    const input = document.createElement("input");
+                                                    input.type = "hidden";
+                                                    input.name = key;
+                                                    input.value = paymentRes.formData[key];
+                                                    form.appendChild(input);
+                                                }
+                                                document.body.appendChild(form);
+                                                form.submit();
+                                            } catch (err: any) {
+                                                toast.error(err.message || "Failed to initiate payment.");
+                                            }
+                                        }}
+                                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm"
+                                    >
+                                        Pay with eSewa
+                                    </button>
                                 )}
                                 {booking.bookingStatus !== 'cancelled' && booking.bookingStatus !== 'completed' && (
                                     <button

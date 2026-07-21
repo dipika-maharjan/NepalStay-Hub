@@ -259,8 +259,8 @@ export default function EditBookingPage({ params }: PageProps) {
 
             <div className="grid lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2">
-                    <div className="bg-white rounded-xl shadow-md p-6">
-                        <h1 className="text-2xl font-bold text-gray-800 mb-2">Edit Booking</h1>
+                    <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
+                        <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">Edit Booking</h1>
 
                         <form onSubmit={handleSubmit} className="space-y-6">
                             {/* Room Type */}
@@ -287,7 +287,7 @@ export default function EditBookingPage({ params }: PageProps) {
                             </div>
 
                             {/* Dates */}
-                            <div className="grid md:grid-cols-2 gap-4">
+                            <div className="grid sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                                         <Calendar className="inline mr-2" size={16} />
@@ -319,7 +319,7 @@ export default function EditBookingPage({ params }: PageProps) {
                             </div>
 
                             {/* Guests & Rooms */}
-                            <div className="grid md:grid-cols-2 gap-4">
+                            <div className="grid sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                                         <Users className="inline mr-2" size={16} />
@@ -360,7 +360,7 @@ export default function EditBookingPage({ params }: PageProps) {
                                     <div className="space-y-3">
                                         {optionalExtras.map((extra) => (
                                             <div key={extra._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                                <div className="flex-1">
+                                                <div className="flex-1 min-w-0">
                                                     <p className="font-medium text-gray-800">{extra.name}</p>
                                                     <p className="text-sm text-gray-600">
                                                         Rs. {extra.price.toLocaleString()} {extra.priceType === "per_person" ? "per person" : "per booking"}
@@ -369,7 +369,7 @@ export default function EditBookingPage({ params }: PageProps) {
                                                         <p className="text-xs text-gray-500 mt-1">{extra.description}</p>
                                                     )}
                                                 </div>
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-2 shrink-0">
                                                     <button
                                                         type="button"
                                                         onClick={() => handleExtraQuantityChange(extra._id, -1)}
@@ -422,8 +422,8 @@ export default function EditBookingPage({ params }: PageProps) {
 
                 {/* Summary */}
                 <div className="lg:col-span-1">
-                    <div className="bg-white rounded-xl shadow-md p-6 sticky top-6">
-                        <h2 className="text-xl font-bold text-gray-800 mb-4">Updated Summary</h2>
+                    <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 sticky top-6">
+                        <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4">Updated Summary</h2>
 
                         <div className="space-y-3 text-sm">
                             {selectedRoomTypeData && (
@@ -456,7 +456,6 @@ export default function EditBookingPage({ params }: PageProps) {
                                 </>
                             )}
 
-                            {/* Extras breakdown */}
                             {Object.keys(selectedExtras).length > 0 && (
                                 <div className="pt-2 border-t border-gray-200">
                                     <p className="font-medium text-gray-700 mb-2">Extras:</p>
@@ -483,18 +482,15 @@ export default function EditBookingPage({ params }: PageProps) {
                                 </div>
                             )}
 
-                            {/* Room subtotal */}
                             <div className="flex justify-between text-xs font-semibold mt-2">
                                 <span>Room Subtotal</span>
                                 <span>Rs. {calculateRoomTotal().toLocaleString()}</span>
                             </div>
-                            {/* Tax */}
                             <div className="flex justify-between text-xs mt-2">
                                 <span>Tax (13%)</span>
                                 <span>Rs. {calculateTax(calculateRoomTotal() + calculateExtrasTotal()).toLocaleString()}</span>
                             </div>
-                            {/* Grand total */}
-                            <div className="pt-3 border-t border-gray-200 flex justify-between text-lg font-bold">
+                            <div className="pt-3 border-t border-gray-200 flex justify-between text-base sm:text-lg font-bold">
                                 <span>Total:</span>
                                 <span className="text-[#0c7272]">Rs. {calculateTotalPrice().toLocaleString()}</span>
                             </div>

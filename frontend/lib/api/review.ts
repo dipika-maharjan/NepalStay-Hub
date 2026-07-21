@@ -21,10 +21,10 @@ export async function getReviews(accommodationId: string, { page = 1, limit = 5,
   return res.data.data;
 }
 
-export async function createReview({ accommodationId, rating, comment }: { accommodationId: string; rating: number; comment: string }) {
+export async function createReview({ bookingId, rating, comment }: { bookingId: string; rating: number; comment: string }) {
   const res = await axios.post(
     API.REVIEW.CREATE,
-    { accommodationId, rating, comment }
+    { bookingId, rating, comment }
   );
-  return res.data.data;
+  return res.data;
 }

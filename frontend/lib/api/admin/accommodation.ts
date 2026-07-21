@@ -33,7 +33,7 @@ export const createAccommodation = async (accommodationData: any) => {
 export const getAllAccommodationsAdmin = async () => {
     try {
         const token = await getAuthToken();
-        const response = await axios.get(API.ACCOMMODATION.GET_ALL, {
+        const response = await axios.get("/api/accommodations/admin/all", {
             headers: {
                 'Authorization': `Bearer ${token}`,
             }

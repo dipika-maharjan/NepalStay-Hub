@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { toast } from "react-toastify";
@@ -20,6 +20,8 @@ import Navbar from "@/app/components/navbar/Navbar";
 import api from "@/lib/api";
 import { normalizeImageUrl } from "@/lib/image";
 import { useAuth } from "@/context/AuthContext";
+import { createReview } from "@/lib/api/review";
+import { initiateEsewaPayment } from "@/lib/api/payment";
 
 const Map = dynamic(() => import("@/app/_components/Map"), { ssr: false });
 
@@ -92,8 +94,14 @@ interface SelectedExtra extends ExtraDetail {
 export default function AccommodationDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { isAuthenticated } = useAuth();
   const id = params?.id;
+  
+  const reviewBookingId = searchParams?.get("reviewBookingId");
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   const [data, setData] = useState<AccommodationPageData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -106,6 +114,7 @@ export default function AccommodationDetailPage() {
   const [checkOut, setCheckOut] = useState("");
   const [guests, setGuests] = useState(1);
   const [specialRequest, setSpecialRequest] = useState("");
+  const [paymentChoice, setPaymentChoice] = useState<"pay_now" | "pay_later">("pay_now");
   const [submitting, setSubmitting] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
@@ -147,6 +156,26 @@ export default function AccommodationDetailPage() {
 
     fetchReviews();
   }, [id]);
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reviewBookingId) return;
+    setSubmittingReview(true);
+    try {
+      await createReview({ bookingId: reviewBookingId, rating: reviewRating, comment: reviewComment });
+      toast.success("Review submitted successfully!");
+      setReviewComment("");
+      // Refresh reviews
+      const response = await api.get(`/reviews/${id}`);
+      setReviews(response.data?.reviews || response.data?.data || []);
+      // Remove query param
+      router.replace(`/accommodations/${id}`);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || "Failed to submit review");
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
 
   useEffect(() => {
     if (data?.roomTypes?.length) {
@@ -235,7 +264,7 @@ export default function AccommodationDetailPage() {
     setSubmitting(true);
 
     try {
-      await api.post("/bookings", {
+      const response = await api.post("/bookings", {
         accommodationId: id,
         roomTypeId: selectedRoomType._id,
         checkIn,
@@ -245,8 +274,37 @@ export default function AccommodationDetailPage() {
         extrasTotal,
       });
 
-      toast.success("Booking request created successfully!");
-      router.push("/bookings");
+      if (paymentChoice === "pay_now") {
+        toast.success("Booking request created! Redirecting to payment...");
+        try {
+          // api.post returns axios response, so booking is usually at response.data or response.data.data
+          const bookingId = response.data?.booking?._id || response.data?.data?._id || response.data?._id;
+          if (!bookingId) throw new Error("Booking ID not found in response.");
+          
+          const paymentRes = await initiateEsewaPayment(totalPrice, bookingId);
+          
+          const form = document.createElement("form");
+          form.method = "POST";
+          form.action = paymentRes.esewaUrl;
+          
+          for (const key in paymentRes.formData) {
+              const input = document.createElement("input");
+              input.type = "hidden";
+              input.name = key;
+              input.value = paymentRes.formData[key];
+              form.appendChild(input);
+          }
+          
+          document.body.appendChild(form);
+          form.submit();
+        } catch (paymentErr) {
+          toast.error("Failed to initiate eSewa payment. You can pay later.");
+          router.push("/bookings");
+        }
+      } else {
+        toast.success("Booking request created successfully!");
+        router.push("/bookings");
+      }
     } catch (error: any) {
       toast.error(
         error?.response?.data?.message || "Unable to create booking right now.",
@@ -524,6 +582,49 @@ export default function AccommodationDetailPage() {
 
             <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
               <h2 className="text-xl font-semibold text-green-900">Reviews</h2>
+              
+              {reviewBookingId && (
+                <form onSubmit={handleSubmitReview} className="mt-4 mb-8 bg-gray-50 p-4 rounded-2xl border border-gray-200">
+                  <h3 className="text-lg font-semibold text-green-900 mb-3">Leave a Review</h3>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Rating</label>
+                    <div className="flex items-center gap-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setReviewRating(star)}
+                          className="focus:outline-none"
+                        >
+                          <Star
+                            size={24}
+                            className={star <= reviewRating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Comment</label>
+                    <textarea
+                      required
+                      value={reviewComment}
+                      onChange={(e) => setReviewComment(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c7272]"
+                      rows={3}
+                      placeholder="Share your experience..."
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={submittingReview}
+                    className="btn-primary w-full sm:w-auto"
+                  >
+                    {submittingReview ? "Submitting..." : "Submit Review"}
+                  </button>
+                </form>
+              )}
+
               {reviewsLoading ? (
                 <div className="mt-4 space-y-3">
                   <div className="h-16 rounded bg-gray-100" />
@@ -652,6 +753,41 @@ export default function AccommodationDetailPage() {
                 />
               </label>
 
+              {/* Payment Choice */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <label className="block text-sm font-semibold mb-3">
+                  Payment Option
+                </label>
+                <div className="space-y-3">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="paymentChoice"
+                      value="pay_now"
+                      checked={paymentChoice === "pay_now"}
+                      onChange={() => setPaymentChoice("pay_now")}
+                      className="w-4 h-4 text-[#0c7272] focus:ring-[#0c7272]"
+                    />
+                    <div>
+                      <p className="font-medium text-sm">Pay with eSewa Now</p>
+                    </div>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="paymentChoice"
+                      value="pay_later"
+                      checked={paymentChoice === "pay_later"}
+                      onChange={() => setPaymentChoice("pay_later")}
+                      className="w-4 h-4 text-[#0c7272] focus:ring-[#0c7272]"
+                    />
+                    <div>
+                      <p className="font-medium text-sm">Book and Pay Later</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
               <button
                 type="submit"
                 className="btn-primary w-full flex items-center justify-center gap-2"
@@ -662,7 +798,7 @@ export default function AccommodationDetailPage() {
                 ) : (
                   <CalendarDays size={18} />
                 )}
-                {submitting ? "Booking..." : "Book Now"}
+                {submitting ? "Processing..." : (paymentChoice === "pay_now" ? "Confirm & Pay with eSewa" : "Book Now")}
               </button>
             </form>
           </aside>

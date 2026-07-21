@@ -116,10 +116,10 @@ const AdminReviewsPage = () => {
     };
 
     return (
-      <div className="p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-2">
-          <h1 className="text-2xl font-bold text-[#0c7272]">All Reviews</h1>
-          <div className="flex items-center gap-2">
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <h1 className="text-xl sm:text-2xl font-bold text-[#0c7272]">All Reviews</h1>
+          <div className="flex flex-wrap items-center gap-2">
             <Filter size={18} />
             <select
               className="border rounded px-2 py-1 text-sm"
@@ -131,77 +131,80 @@ const AdminReviewsPage = () => {
                 <option key={a._id} value={a._id}>{a.name}</option>
               ))}
             </select>
-            <label className="ml-2 font-medium text-sm">Sort by:</label>
+            <label className="font-medium text-sm">Sort:</label>
             <select
               value={sort}
               onChange={e => { setSort(e.target.value); setPage(1); }}
               className="border rounded px-2 py-1 text-sm"
             >
               <option value="latest">Latest</option>
-              <option value="highest">Highest Rating</option>
-              <option value="lowest">Lowest Rating</option>
+              <option value="highest">Highest</option>
+              <option value="lowest">Lowest</option>
             </select>
           </div>
         </div>
         {/* Reviews Table and Pagination */}
         {loading ? (
-          <div>Loading reviews...</div>
+          <div className="text-center py-10">Loading reviews...</div>
         ) : reviews.length === 0 ? (
-          <div className="text-gray-500">No reviews found.</div>
+          <div className="text-center py-10 text-gray-500">No reviews found.</div>
         ) : (
           <>
-            <div className="overflow-x-auto">
-              <table className="min-w-full border text-sm">
-                <thead className="bg-gray-100">
-                  <tr>
-                    <th className="p-2 border">Accommodation</th>
-                    <th className="p-2 border">User</th>
-                    <th className="p-2 border">Rating</th>
-                    <th className="p-2 border">Comment</th>
-                    <th className="p-2 border">Date</th>
-                    <th className="p-2 border">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reviews.map((r) => (
-                    <tr key={r._id} className="border-b">
-                      <td className="p-2 border">{r.accommodation?.name || "-"}</td>
-                      <td className="p-2 border">{r.user?.name || "-"}</td>
-                      <td className="p-2 border">
-                        <div className="flex gap-0.5">
-                          {[1,2,3,4,5].map((i) => (
-                            <Star key={i} size={16} className={i <= r.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"} />
-                          ))}
-                        </div>
-                      </td>
-                      <td className="p-2 border">{r.comment}</td>
-                      <td className="p-2 border">{new Date(r.createdAt).toLocaleDateString()}</td>
-                      <td className="p-2 border">
-                        <button
-                          className="p-1 rounded hover:bg-blue-50 text-blue-600 mr-1"
-                          title="Edit"
-                          onClick={() => handleEdit(r)}
-                          disabled={submitting}
-                        >
-                          <Pencil size={16} />
-                        </button>
-                        <button
-                          className="p-1 rounded hover:bg-red-50 text-red-600"
-                          title="Delete"
-                          onClick={() => handleDelete(r._id)}
-                          disabled={submitting}
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </td>
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200 text-sm">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Accommodation</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">User</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Rating</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Comment</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Date</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {reviews.map((r) => (
+                      <tr key={r._id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 whitespace-nowrap">{r.accommodation?.name || "-"}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">{r.user?.name || "-"}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="flex gap-0.5">
+                            {[1,2,3,4,5].map((i) => (
+                              <Star key={i} size={16} className={i <= r.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"} />
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 max-w-[200px] truncate">{r.comment}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">{new Date(r.createdAt).toLocaleDateString()}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <button
+                              className="p-1.5 rounded hover:bg-blue-50 text-blue-600"
+                              title="Edit"
+                              onClick={() => handleEdit(r)}
+                              disabled={submitting}
+                            >
+                              <Pencil size={16} />
+                            </button>
+                            <button
+                              className="p-1.5 rounded hover:bg-red-50 text-red-600"
+                              title="Delete"
+                              onClick={() => handleDelete(r._id)}
+                              disabled={submitting}
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-            {/* Styled Pagination Controls (Bookings style) */}
-            <div className="bg-white rounded-lg shadow p-4 flex items-center justify-between mt-6">
-              {/* Showing X to Y of Z reviews */}
+            {/* Styled Pagination Controls */}
+            <div className="bg-white rounded-lg shadow p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="text-sm text-gray-600">
                 {(() => {
                   const startIdx = (page - 1) * limit + 1;
@@ -210,7 +213,6 @@ const AdminReviewsPage = () => {
                 })()}
               </div>
               <div className="flex gap-2">
-                {/* Prev chevron */}
                 <button
                   disabled={page === 1}
                   className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
@@ -235,7 +237,7 @@ const AdminReviewsPage = () => {
                       links.push(
                         <button
                           key={i}
-                          className={`px-3 py-1 rounded-lg transition ${page === i ? 'bg-[#0c7272] text-white' : 'bg-gray-50 text-gray-700'}`}
+                          className={`px-3 py-1 rounded-lg transition ${page === i ? 'bg-[#0c7272] text-white' : 'border border-gray-300 hover:bg-gray-50'}`}
                           onClick={() => setPage(i)}
                           disabled={page === i}
                         >{i}</button>
@@ -247,7 +249,6 @@ const AdminReviewsPage = () => {
                     return links;
                   })()}
                 </div>
-                {/* Next chevron */}
                 <button
                   disabled={page === Math.max(1, Math.ceil(totalReviews / limit)) || !hasMore}
                   className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
@@ -263,7 +264,7 @@ const AdminReviewsPage = () => {
 
         {/* Edit Modal */}
         {editingReview && (
-          <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
               <h2 className="text-lg font-semibold mb-4 text-[#0c7272]">Edit Review</h2>
               <form onSubmit={handleUpdate} className="space-y-3">

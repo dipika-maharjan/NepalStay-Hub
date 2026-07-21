@@ -174,8 +174,8 @@ export default function AdminBookingsPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold text-gray-800">Bookings Management</h1>
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Bookings Management</h1>
                 <div className="text-sm text-gray-600">
                     Active Bookings: <span className="font-semibold">{activeBookings.length}</span>
                 </div>
@@ -187,7 +187,7 @@ export default function AdminBookingsPage() {
                 </div>
             )}
 
-            <div className="bg-white rounded-lg shadow p-4 flex items-center gap-4">
+            <div className="bg-white rounded-lg shadow p-4 flex flex-col sm:flex-row sm:items-center gap-4">
                 <label className="flex items-center gap-2 cursor-pointer">
                     <input
                         type="checkbox"
@@ -205,12 +205,12 @@ export default function AdminBookingsPage() {
                         setCurrentPage(1);
                     }}
                     placeholder="Search bookings..."
-                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0c7272]"
-                    style={{ minWidth: 220 }}
+                    className="w-full sm:w-auto border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0c7272] sm:min-w-[220px]"
                 />
             </div>
 
             <div className="bg-white rounded-lg shadow overflow-hidden">
+                <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                         <tr>
@@ -345,11 +345,12 @@ export default function AdminBookingsPage() {
                         )}
                     </tbody>
                 </table>
+                </div>
             </div>
 
             {/* Pagination Controls */}
             {filteredBookings.length > 0 && (
-                <div className="bg-white rounded-lg shadow p-4 flex items-center justify-between">
+                <div className="bg-white rounded-lg shadow p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div className="text-sm text-gray-600">
                         Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, filteredBookings.length)} of {filteredBookings.length} bookings
                     </div>

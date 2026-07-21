@@ -16,6 +16,7 @@ import Navbar from "@/app/components/navbar/Navbar";
 import api from "@/lib/api";
 import { handleUpdateProfile } from "@/lib/actions/user-action";
 import { setUserData } from "@/lib/cookie";
+import { normalizeImageUrl } from "@/lib/image";
 
 export default function ProfilePage() {
   const { user, setUser, isAuthenticated, loading, checkAuth } = useAuth();
@@ -237,11 +238,10 @@ export default function ProfilePage() {
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition-colors ${
-                tab === t.id
+              className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition-colors ${tab === t.id
                   ? "bg-[#0c7272] text-white"
                   : "text-gray-600 hover:text-[#0c7272]"
-              }`}
+                }`}
             >
               {t.icon} {t.label}
             </button>

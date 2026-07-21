@@ -132,7 +132,7 @@ export default function CreateUserForm() {
                 {errors.image && <p className="text-sm text-red-600 mt-1">{errors.image.message}</p>}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                     <label className="text-sm font-medium" htmlFor="firstName">First name</label>
                     <input

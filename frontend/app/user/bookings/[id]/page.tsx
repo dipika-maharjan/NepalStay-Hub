@@ -81,13 +81,13 @@ export default function BookingDetailPage({ params }: PageProps) {
             </Link>
 
             <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-                <div className="bg-[#0c7272] text-white p-6">
-                    <h1 className="text-2xl font-bold">Booking Confirmation</h1>
-                    <p className="text-sm opacity-90 mt-1">Booking ID: #{booking._id.slice(-8)}</p>
+                <div className="bg-[#0c7272] text-white p-4 sm:p-6">
+                    <h1 className="text-xl sm:text-2xl font-bold">Booking Confirmation</h1>
+                    <p className="text-sm opacity-90 mt-1 break-all">Booking ID: #{booking._id.slice(-8)}</p>
                 </div>
 
-                <div className="p-6 space-y-6">
-                    <div className="grid md:grid-cols-2 gap-6">
+                <div className="p-4 sm:p-6 space-y-6">
+                    <div className="grid sm:grid-cols-2 gap-6">
                         <div className="space-y-4">
                             <div>
                                 <h2 className="text-xl font-bold text-gray-800 mb-2">
@@ -103,23 +103,23 @@ export default function BookingDetailPage({ params }: PageProps) {
                             </div>
 
                             <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
-                                <Calendar className="text-[#0c7272] mt-1" size={20} />
-                                <div>
+                                <Calendar className="text-[#0c7272] mt-1 shrink-0" size={20} />
+                                <div className="min-w-0">
                                     <div className="font-semibold text-gray-800">Check-in</div>
                                     <div className="text-sm text-gray-600">{formatDate(booking.checkIn)}</div>
                                 </div>
                             </div>
 
                             <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
-                                <Calendar className="text-[#0c7272] mt-1" size={20} />
-                                <div>
+                                <Calendar className="text-[#0c7272] mt-1 shrink-0" size={20} />
+                                <div className="min-w-0">
                                     <div className="font-semibold text-gray-800">Check-out</div>
                                     <div className="text-sm text-gray-600">{formatDate(booking.checkOut)}</div>
                                 </div>
                             </div>
 
                             <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
-                                <Users className="text-[#0c7272]" size={20} />
+                                <Users className="text-[#0c7272] shrink-0" size={20} />
                                 <div>
                                     <span className="font-semibold text-gray-800">{booking.guests}</span>
                                     <span className="text-gray-600"> guest{booking.guests > 1 ? 's' : ''}</span>
@@ -127,7 +127,7 @@ export default function BookingDetailPage({ params }: PageProps) {
                             </div>
 
                             <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
-                                <DoorOpen className="text-[#0c7272]" size={20} />
+                                <DoorOpen className="text-[#0c7272] shrink-0" size={20} />
                                 <div>
                                     <span className="font-semibold text-gray-800">{booking.roomsBooked}</span>
                                     <span className="text-gray-600"> room{booking.roomsBooked > 1 ? 's' : ''}</span>
@@ -144,16 +144,15 @@ export default function BookingDetailPage({ params }: PageProps) {
                         </div>
 
                         <div>
-                            <div className="bg-gray-50 rounded-lg p-6 space-y-4">
+                            <div className="bg-gray-50 rounded-lg p-4 sm:p-6 space-y-4">
                                 <h3 className="text-lg font-bold text-gray-800">Price Summary</h3>
                                 
                                 <div className="space-y-2">
-                                    {/* Show breakdown but DO NOT recalc total */}
                                     <div className="flex justify-between text-sm">
                                         <span className="text-gray-600">
                                             Room ({booking.nights} × {booking.roomsBooked})
                                         </span>
-                                        <span className="font-medium">Rs. {booking.basePriceTotal.toFixed(2)}</span>
+                                        <span className="font-medium">Rs. {booking.basePriceTotal?.toFixed(2)}</span>
                                     </div>
 
                                     {extras && extras.length > 0 && (
@@ -167,36 +166,35 @@ export default function BookingDetailPage({ params }: PageProps) {
                                                         <span className="text-gray-600">
                                                             {extra.name} (×{extra.quantity})
                                                         </span>
-                                                        <span>Rs. {extra.total.toFixed(2)}</span>
+                                                        <span>Rs. {extra.total?.toFixed(2)}</span>
                                                     </div>
                                                 ))}
                                             </div>
                                             <div className="flex justify-between text-sm border-t pt-2">
                                                 <span className="text-gray-600">Extras Subtotal</span>
-                                                <span className="font-medium">Rs. {booking.extrasTotal.toFixed(2)}</span>
+                                                <span className="font-medium">Rs. {booking.extrasTotal?.toFixed(2)}</span>
                                             </div>
                                         </>
                                     )}
 
                                     <div className="flex justify-between text-sm">
                                         <span className="text-gray-600">Tax (13%)</span>
-                                        <span>Rs. {booking.tax.toFixed(2)}</span>
+                                        <span>Rs. {booking.tax?.toFixed(2)}</span>
                                     </div>
                                     
                                     {booking.serviceFee > 0 && (
                                         <div className="flex justify-between text-sm">
                                             <span className="text-gray-600">Service Fee</span>
-                                            <span>Rs. {booking.serviceFee.toFixed(2)}</span>
+                                            <span>Rs. {booking.serviceFee?.toFixed(2)}</span>
                                         </div>
                                     )}
                                 </div>
 
-                                {/* FINAL TOTAL from backend */}
                                 <div className="pt-4 border-t-2 border-gray-300">
                                     <div className="flex justify-between items-center">
                                         <span className="text-lg font-bold text-gray-800">Total</span>
-                                        <span className="text-2xl font-bold text-[#0c7272]">
-                                            Rs. {booking.totalPrice.toFixed(2)}
+                                        <span className="text-xl sm:text-2xl font-bold text-[#0c7272]">
+                                            Rs. {booking.totalPrice?.toFixed(2)}
                                         </span>
                                     </div>
                                 </div>

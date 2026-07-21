@@ -30,6 +30,14 @@ export default function LoginForm() {
     setError("");
     try {
       const res = await handleLogin(data);
+      if (res.requiresMFA) {
+        router.push(
+          `/mfa?tempUserId=${encodeURIComponent(res.tempUserId || "")}&email=${encodeURIComponent(
+            res.email || data.email,
+          )}`,
+        );
+        return;
+      }
       if (!res.success) {
         throw new Error(res.message || "Login failed");
       }
@@ -40,13 +48,14 @@ export default function LoginForm() {
         localStorage.setItem("token", res.data.token);
       }
       await checkAuth();
-      // Redirect based on user role
+      const target =
+        res.data?.role === "admin" ? "/admin/users" : "/user/dashboard";
+      if (typeof window !== "undefined") {
+        window.location.replace(target);
+        return;
+      }
       startTransition(() => {
-        if (res.data?.role === "admin") {
-          router.push("/admin/users");
-        } else {
-          router.push("/user/dashboard");
-        }
+        router.push(target);
       });
     } catch (err: Error | any) {
       setError(err.message || "Login failed");
@@ -108,7 +117,10 @@ export default function LoginForm() {
         </div>
 
         <div className="text-right">
-          <a href="/forget-password" className="text-xs text-gray-500 hover:text-[#00a884]">
+          <a
+            href="/forget-password"
+            className="text-xs text-gray-500 hover:text-[#00a884]"
+          >
             Forgot Password?
           </a>
         </div>

@@ -3,7 +3,6 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import Navbar from "@/app/components/navbar/Navbar";
 import api from "@/lib/api";
 import useAuth from "@/context/AuthContext";
 
@@ -269,7 +268,6 @@ export default function AdminPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar />
         <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           Loading...
         </main>
@@ -281,11 +279,9 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
-
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Admin dashboard</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Admin dashboard</h1>
           <p className="mt-2 text-sm text-gray-600">
             Manage users, host verification, listings, audit activity, and
             blocked IPs.
@@ -320,22 +316,22 @@ export default function AdminPage() {
                 <table className="min-w-full divide-y divide-gray-200 text-sm">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                      <th className="px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">
                         Name
                       </th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                      <th className="px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">
                         Email
                       </th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                      <th className="px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">
                         Role
                       </th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                      <th className="px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">
                         Email Verified
                       </th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                      <th className="px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">
                         Created At
                       </th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                      <th className="px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">
                         Actions
                       </th>
                     </tr>
@@ -343,9 +339,9 @@ export default function AdminPage() {
                   <tbody className="divide-y divide-gray-200 bg-white">
                     {users.map((userItem) => (
                       <tr key={userItem._id}>
-                        <td className="px-4 py-3">{userItem.name}</td>
-                        <td className="px-4 py-3">{userItem.email}</td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 whitespace-nowrap">{userItem.name}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">{userItem.email}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">
                           <select
                             value={userItem.role}
                             onChange={(event) =>
@@ -357,13 +353,13 @@ export default function AdminPage() {
                             <option value="admin">Admin</option>
                           </select>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 whitespace-nowrap">
                           {userItem.isEmailVerified ? "Yes" : "No"}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 whitespace-nowrap">
                           {new Date(userItem.createdAt).toLocaleDateString()}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 whitespace-nowrap">
                           <button
                             onClick={() => handleDeleteUser(userItem._id)}
                             className="btn-danger text-sm"
@@ -394,22 +390,22 @@ export default function AdminPage() {
                 <table className="min-w-full divide-y divide-gray-200 text-sm">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                      <th className="px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">
                         Title
                       </th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                      <th className="px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">
                         Host
                       </th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                      <th className="px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">
                         Type
                       </th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                      <th className="px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">
                         Price
                       </th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                      <th className="px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">
                         Status
                       </th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                      <th className="px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">
                         Action
                       </th>
                     </tr>
@@ -417,22 +413,22 @@ export default function AdminPage() {
                   <tbody className="divide-y divide-gray-200 bg-white">
                     {accommodations.map((item) => (
                       <tr key={item._id}>
-                        <td className="px-4 py-3">{item.title}</td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 whitespace-nowrap">{item.title}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">
                           {item.hostId?.name || "Unknown"}
                         </td>
-                        <td className="px-4 py-3">{item.type}</td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 whitespace-nowrap">{item.type}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">
                           Rs. {item.pricePerNight?.toLocaleString()}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 whitespace-nowrap">
                           {item.isApprovedByAdmin ? (
                             <span className="badge-verified">Approved</span>
                           ) : (
                             <span className="badge-pending">Pending</span>
                           )}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 whitespace-nowrap">
                           {!item.isApprovedByAdmin && (
                             <button
                               onClick={() =>
@@ -466,19 +462,19 @@ export default function AdminPage() {
                     <table className="min-w-full divide-y divide-gray-200 text-sm">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                          <th className="px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">
                             Timestamp
                           </th>
-                          <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                          <th className="px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">
                             Action
                           </th>
-                          <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                          <th className="px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">
                             User
                           </th>
-                          <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                          <th className="px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">
                             IP
                           </th>
-                          <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                          <th className="px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">
                             Metadata
                           </th>
                         </tr>
@@ -486,21 +482,21 @@ export default function AdminPage() {
                       <tbody className="divide-y divide-gray-200 bg-white">
                         {auditLogs.map((log) => (
                           <tr key={log._id}>
-                            <td className="px-4 py-3">
+                            <td className="px-4 py-3 whitespace-nowrap">
                               {log.timestamp
                                 ? new Date(log.timestamp).toLocaleString()
                                 : "—"}
                             </td>
-                            <td className="px-4 py-3">{log.action}</td>
-                            <td className="px-4 py-3">
+                            <td className="px-4 py-3 whitespace-nowrap">{log.action}</td>
+                            <td className="px-4 py-3 whitespace-nowrap">
                               {log.userId?.name ||
                                 log.userId?.email ||
                                 "System"}
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-4 py-3 whitespace-nowrap">
                               {log.ipAddress || "—"}
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-4 py-3 max-w-[200px] truncate">
                               {renderValue(log.metadata)}
                             </td>
                           </tr>
@@ -510,7 +506,7 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <button
                     onClick={() =>
                       setAuditPage((prev) => Math.max(1, prev - 1))
@@ -544,7 +540,7 @@ export default function AdminPage() {
               </h2>
               <form
                 onSubmit={handleAddBlock}
-                className="mt-4 grid gap-4 md:grid-cols-2"
+                className="mt-4 grid gap-4 sm:grid-cols-2"
               >
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-700">
@@ -553,7 +549,7 @@ export default function AdminPage() {
                   <input
                     value={newIp}
                     onChange={(event) => setNewIp(event.target.value)}
-                    className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+                    className="rounded-md border border-gray-300 px-3 py-2 text-sm w-full"
                     required
                   />
                 </div>
@@ -564,7 +560,7 @@ export default function AdminPage() {
                   <input
                     value={newReason}
                     onChange={(event) => setNewReason(event.target.value)}
-                    className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+                    className="rounded-md border border-gray-300 px-3 py-2 text-sm w-full"
                     required
                   />
                 </div>
@@ -589,11 +585,11 @@ export default function AdminPage() {
                     type="number"
                     value={durationHours}
                     onChange={(event) => setDurationHours(event.target.value)}
-                    className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+                    className="rounded-md border border-gray-300 px-3 py-2 text-sm w-full"
                     disabled={permanentBlock}
                   />
                 </div>
-                <div className="md:col-span-2">
+                <div className="sm:col-span-2">
                   <button
                     type="submit"
                     className="btn-primary"
@@ -615,19 +611,19 @@ export default function AdminPage() {
                   <table className="min-w-full divide-y divide-gray-200 text-sm">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                        <th className="px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">
                           IP address
                         </th>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                        <th className="px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">
                           Reason
                         </th>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                        <th className="px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">
                           Blocked at
                         </th>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                        <th className="px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">
                           Expires at
                         </th>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                        <th className="px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">
                           Action
                         </th>
                       </tr>
@@ -635,12 +631,12 @@ export default function AdminPage() {
                     <tbody className="divide-y divide-gray-200 bg-white">
                       {ipBlocks.map((item) => (
                         <tr key={item._id}>
-                          <td className="px-4 py-3">{item.ipAddress}</td>
-                          <td className="px-4 py-3">{item.reason}</td>
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-3 whitespace-nowrap">{item.ipAddress}</td>
+                          <td className="px-4 py-3 whitespace-nowrap">{item.reason}</td>
+                          <td className="px-4 py-3 whitespace-nowrap">
                             {new Date(item.blockedAt).toLocaleString()}
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-3 whitespace-nowrap">
                             {item.permanent ? (
                               <span className="badge-verified">Permanent</span>
                             ) : item.expiresAt ? (
@@ -649,7 +645,7 @@ export default function AdminPage() {
                               "—"
                             )}
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-3 whitespace-nowrap">
                             <button
                               onClick={() => handleUnblockIP(item.ipAddress)}
                               className="btn-danger text-sm"

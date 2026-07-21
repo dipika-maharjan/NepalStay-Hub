@@ -14,7 +14,7 @@ export default function Footer() {
             <Image src={logo} alt="Logo" width={40} height={40} />
           </div>
           <p className="text-sm text-gray-300 leading-relaxed">
-            TripWiseNepal helps you discover the hidden gems of the Himalayas with personalized travel experiences.
+            NepalStayHub helps you discover the hidden gems of the Himalayas with personalized travel experiences.
           </p>
         </div>
 
@@ -32,7 +32,7 @@ export default function Footer() {
         <div>
           <h4 className="font-bold text-lg mb-4">Contact Us</h4>
           <ul className="space-y-3 text-sm text-gray-400">
-            <li className="flex items-center gap-2"><Mail size={16} /> info@tripwisenepal.com</li>
+            <li className="flex items-center gap-2"><Mail size={16} /> info@NepalStayHub.com</li>
             <li className="flex items-center gap-2"><Phone size={16} /> +977 9800000000</li>
           </ul>
         </div>
@@ -56,7 +56,7 @@ export default function Footer() {
 
       {/* Bottom Copyright */}
       <div className="max-w-6xl mx-auto px-6 mt-12 pt-8 border-t border-white/10 text-center text-xs text-gray-500">
-        © {new Date().getFullYear()} TripWiseNepal. All rights reserved.
+        © {new Date().getFullYear()} NepalStayHub. All rights reserved.
       </div>
     </footer>
   );

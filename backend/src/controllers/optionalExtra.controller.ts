@@ -42,8 +42,32 @@ export const getExtrasByAccommodation = async (
     }).sort({ createdAt: -1 });
 
     res.status(200).json({
+      success: true,
       message: "Optional extras fetched successfully",
       data: extras,
+    });
+  } catch {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const getExtraById = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const extra = await OptionalExtraModel.findById(id).populate("accommodationId", "name title");
+
+    if (!extra) {
+      res.status(404).json({ message: "Optional extra not found", data: null });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Optional extra fetched successfully",
+      data: extra,
     });
   } catch {
     res.status(500).json({ message: "Internal server error" });
@@ -58,6 +82,7 @@ export const getAllOptionalExtras = async (
     const includeInactive = req.query.includeInactive === "true";
     let filter: any = {};
     if (!includeInactive) filter.isActive = true;
+    if (req.query.accommodationId) filter.accommodationId = req.query.accommodationId;
 
     const extras = await OptionalExtraModel.find(filter)
       .populate("accommodationId", "name")
@@ -107,6 +132,7 @@ export const createExtra = async (
     });
 
     res.status(201).json({
+      success: true,
       message: "Optional extra created successfully",
       data: extra,
     });
@@ -165,6 +191,7 @@ export const updateExtra = async (
     );
 
     res.status(200).json({
+      success: true,
       message: "Optional extra updated successfully",
       data: updatedExtra,
     });
@@ -203,6 +230,7 @@ export const deleteExtra = async (
     );
 
     res.status(200).json({
+      success: true,
       message: "Optional extra deleted successfully",
       data: deletedExtra,
     });

@@ -25,12 +25,12 @@ services:
       - mongo
     environment:
       - MONGODB_URI=mongodb://mongo:27017/nepalstayhub
-      - PORT=5050
+      - PORT=5051
       - NODE_ENV=development
     env_file:
       - ./backend/.env
     ports:
-      - "5050:5050"
+      - "5051:5051"
     networks:
       - nepalstay-net
     volumes:

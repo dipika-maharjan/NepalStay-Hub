@@ -5,7 +5,7 @@ import crypto from "crypto";
 const ENCRYPTION_KEY = process.env.MFA_ENCRYPTION_KEY!;
 const ALGORITHM = "aes-256-cbc";
 
-// Encrypt MFA secret before storing in DB — never store plaintext
+// Encrypt MFA secret before storing in DB
 export const encryptSecret = (secret: string): string => {
   const iv = crypto.randomBytes(16);
   const key = crypto.scryptSync(ENCRYPTION_KEY, "salt", 32);
@@ -20,7 +20,10 @@ export const decryptSecret = (encryptedSecret: string): string => {
   const encrypted = Buffer.from(encryptedHex, "hex");
   const key = crypto.scryptSync(ENCRYPTION_KEY, "salt", 32);
   const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
-  const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
+  const decrypted = Buffer.concat([
+    decipher.update(encrypted),
+    decipher.final(),
+  ]);
   return decrypted.toString();
 };
 
@@ -28,11 +31,11 @@ export const generateMFASecret = (): string => generateSecret();
 
 export const generateQRCode = async (
   email: string,
-  secret: string
+  secret: string,
 ): Promise<string> => {
   const otpAuthUrl = generateURI({
     label: email,
-    issuer: "NepalStay-Hub",
+    issuer: "NepalStayHub",
     secret,
   });
   return QRCode.toDataURL(otpAuthUrl);

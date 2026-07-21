@@ -92,10 +92,10 @@ const AccommodationSchema: Schema = new Schema<IAccommodation>(
       type: Boolean,
       default: true,
     },
-    // Admin must approve listing before it goes live
+    // Admin-created listings should be visible by default for public browsing
     isApprovedByAdmin: {
       type: Boolean,
-      default: false,
+      default: true,
     },
     rating: {
       type: Number,

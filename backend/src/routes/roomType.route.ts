@@ -1,10 +1,10 @@
 import { Router } from "express";
 import {
-  getRoomTypesByAccommodation,
   createRoomType,
   updateRoomType,
   deleteRoomType,
   getAllRoomTypes,
+  getRoomTypeById,
 } from "../controllers/roomType.controller";
 import {
   requireAuth,
@@ -14,7 +14,7 @@ import {
 const router = Router();
 
 router.get("/", requireAuth, requireRole("admin"), getAllRoomTypes);
-router.get("/:accommodationId", getRoomTypesByAccommodation);
+router.get("/:id", requireAuth, requireRole("admin"), getRoomTypeById);
 router.post(
   "/",
   requireAuth,

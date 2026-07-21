@@ -60,7 +60,7 @@ export const updateProfile = async (
     const authReq = req as AuthRequest;
     const userId = authReq.user?.userId;
 
-    // Whitelist only safe fields — role/isHostVerified/mfaEnabled cannot be set here
+    // Whitelist only safe fields — role/mfaEnabled cannot be set here
     const { name, phone, bio, profileImage } = req.body;
 
     const allowedUpdates: Record<string, unknown> = {};

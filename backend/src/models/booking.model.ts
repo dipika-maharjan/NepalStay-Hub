@@ -20,6 +20,7 @@ export interface IBooking extends Document {
   bookingStatus: "pending" | "confirmed" | "cancelled" | "completed";
   paymentStatus: "pending" | "paid" | "refunded";
   paymentId: mongoose.Types.ObjectId | null;
+  expiresAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -78,6 +79,10 @@ const BookingSchema: Schema = new Schema<IBooking>(
     paymentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Payment",
+      default: null,
+    },
+    expiresAt: {
+      type: Date,
       default: null,
     },
   },

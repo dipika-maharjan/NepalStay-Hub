@@ -1,189 +1,258 @@
+import crypto from "crypto";
 import { Request, Response } from "express";
-import Stripe from "stripe";
-import { PaymentModel } from "../models/payment.model";
+import axios from "axios";
 import { BookingModel } from "../models/booking.model";
-import { AuditLogModel } from "../models/auditLog.model";
-import { AuthRequest } from "../middleware/auth.middleware";
+import { sendPaymentSuccessEmail } from "../config/paymentEmail";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
+export const buildEsewaSignature = ({
+  total_amount,
+  transaction_uuid,
+  product_code,
+  secret_key,
+}: {
+  total_amount: string;
+  transaction_uuid: string;
+  product_code: string;
+  secret_key: string;
+}) => {
+  const signedFields = [
+    ["total_amount", total_amount],
+    ["transaction_uuid", transaction_uuid],
+    ["product_code", product_code],
+  ];
+  const message = signedFields
+    .map(([field, value]) => `${field}=${value}`)
+    .join(",");
 
-// POST /api/payments/create-intent
-export const createPaymentIntent = async (
-  req: Request,
-  res: Response,
-): Promise<void> => {
+  return crypto
+    .createHmac("sha256", secret_key)
+    .update(message)
+    .digest("base64");
+};
+
+export const resolvePaymentProvider = () => ({
+  provider: "esewa",
+  configured: false,
+  client: null,
+});
+
+// POST /api/payment/esewa/initiate
+export const initiateEsewaPayment = async (req: Request, res: Response) => {
   try {
-    const authReq = req as AuthRequest;
-    const { bookingId } = req.body;
-    const travelerId = authReq.user?.userId;
-
-    if (!bookingId) {
-      res.status(400).json({ message: "Booking ID is required" });
-      return;
+    const { amount, bookingId } = req.body;
+    console.log("eSewa initiate params:", { amount, bookingId });
+    if (!amount || !bookingId) {
+      console.log("Missing amount or bookingId:", { amount, bookingId });
+      return res
+        .status(400)
+        .json({ message: "Amount and bookingId are required." });
     }
 
-    const booking = await BookingModel.findOne({
-      _id: bookingId,
-      userId: travelerId,
-    });
+    // Fetch booking and check status/expiry
+    const booking = await BookingModel.findById(bookingId);
     if (!booking) {
-      res.status(404).json({ message: "Booking not found or access denied" });
-      return;
+      return res.status(404).json({ message: "Booking not found." });
     }
-
-    if ((booking as any).paymentStatus === "paid") {
-      res.status(400).json({ message: "Booking already paid" });
-      return;
+    if (booking.bookingStatus === "cancelled") {
+      return res
+        .status(400)
+        .json({ message: "This booking is cancelled and cannot be paid." });
     }
+    if (booking.paymentStatus === "paid") {
+      return res.status(400).json({ message: "This booking is already paid." });
+    }
+    if (booking.expiresAt && booking.expiresAt < new Date()) {
+      return res
+        .status(400)
+        .json({ message: "This booking has expired and cannot be paid." });
+    }
+    if (booking.checkIn < new Date()) {
+      return res.status(400).json({
+        message: "Check-in date is in the past. Payment is not allowed.",
+      });
+    }
+    // Use only required fields for signature and signed_field_names (per eSewa v2 docs)
+    const total_amount = String(amount);
+    // Use only alphanumeric and hyphen for transaction_uuid
+    const rawUuid = `booking-${bookingId}-${Date.now()}`;
+    const transaction_uuid = rawUuid.replace(/[^a-zA-Z0-9-]/g, "");
+    // Save transaction_uuid to booking for later lookup
+    await BookingModel.findByIdAndUpdate(bookingId, { transaction_uuid });
+    const product_code = process.env.ESEWA_MERCHANT_CODE || "EPAYTEST";
+    const success_url =
+      process.env.ESEWA_SUCCESS_URL || "http://localhost:3000/payment/success";
+    const failure_url =
+      process.env.ESEWA_FAILURE_URL || "http://localhost:3000/payment/failure";
+    const secret_key = process.env.ESEWA_SECRET_KEY || "";
+    const signed_field_names = "total_amount,transaction_uuid,product_code";
+    const signature = buildEsewaSignature({
+      total_amount,
+      transaction_uuid,
+      product_code,
+      secret_key,
+    });
+    // Required but unsigned fields
+    const amountStr = String(amount);
+    const tax_amount = "0";
+    const product_service_charge = "0";
+    const product_delivery_charge = "0";
+    // Build POST payload: all required fields, only three are signed
+    const formData: Record<string, string> = {
+      amount: amountStr,
+      tax_amount,
+      total_amount,
+      transaction_uuid,
+      product_code,
+      product_service_charge,
+      product_delivery_charge,
+      success_url,
+      failure_url,
+      signed_field_names,
+      signature,
+    };
 
-    const amountInCents = Math.round((booking as any).totalPrice * 100);
-
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: amountInCents,
-      currency: "usd",
-      metadata: {
-        bookingId: bookingId,
-        travelerId: travelerId!,
-      },
+    // Debug log for troubleshooting
+    console.log("eSewa v2 signature debug:", {
+      signed_field_names,
+      secret_key: secret_key ? "configured" : "missing",
+      signature,
+      POST: formData,
     });
 
-    const payment = await PaymentModel.create({
-      bookingId,
-      travelerId,
-      stripePaymentIntentId: paymentIntent.id,
-      stripeClientSecret: paymentIntent.client_secret,
-      amount: (booking as any).totalPrice,
-      currency: "usd",
-      status: "pending",
-    });
-
-    (booking as any).paymentId = payment._id;
-    await (booking as any).save();
-
-    await AuditLogModel.create({
-      userId: travelerId,
-      action: "PAYMENT_INITIATED",
-      targetType: "Payment",
-      targetId: payment._id.toString(),
-      ipAddress: req.ip || "unknown",
-      metadata: { bookingId, amount: (booking as any).totalPrice },
-      timestamp: new Date(),
-    });
-
-    res.status(200).json({
-      clientSecret: paymentIntent.client_secret,
-      paymentId: payment._id,
+    // Build the full payload for eSewa POST form
+    console.log("eSewa v2 POST payload:", formData);
+    return res.json({
+      esewaUrl: "https://rc-epay.esewa.com.np/api/epay/main/v2/form",
+      formData,
     });
   } catch (error) {
-    console.error("Payment intent error:", error);
-    res.status(500).json({ message: "Payment initiation failed" });
+    return res
+      .status(500)
+      .json({ message: "Failed to initiate payment", error });
   }
 };
 
-// POST /api/payments/webhook — Stripe webhook
-export const stripeWebhook = async (
-  req: Request,
-  res: Response,
-): Promise<void> => {
-  const sig = req.headers["stripe-signature"] as string;
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || "";
-
-  let event: Stripe.Event;
-
+// GET /api/payment/esewa/success
+export const esewaSuccess = async (req: Request, res: Response) => {
   try {
-    // req.body must be the raw body
-    event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
-  } catch (err) {
-    res.status(400).json({ message: "Webhook signature verification failed" });
-    return;
-  }
-
-  try {
-    if (event.type === "payment_intent.succeeded") {
-      const intent = event.data.object as Stripe.PaymentIntent;
-      const { bookingId } = intent.metadata as any;
-
-      await PaymentModel.findOneAndUpdate(
-        { stripePaymentIntentId: intent.id },
-        {
-          status: "succeeded",
-          stripeClientSecret: null,
-          paidAt: new Date(),
+    // Log incoming request for debugging (web vs Flutter)
+    console.log("Payment success request received:", {
+      query: req.query,
+      body: req.body,
+      headers: req.headers,
+      method: req.method,
+      url: req.originalUrl,
+    });
+    // Support v2: decode 'data' param if present
+    let product_code, total_amount, transaction_uuid;
+    if (req.query.data) {
+      try {
+        const decoded = JSON.parse(
+          Buffer.from(req.query.data as string, "base64").toString(),
+        );
+        product_code =
+          decoded.product_code || process.env.ESEWA_MERCHANT_CODE || "EPAYTEST";
+        total_amount = decoded.total_amount;
+        transaction_uuid = decoded.transaction_uuid;
+      } catch (err) {
+        return res.status(400).json({ message: "Invalid data parameter." });
+      }
+    } else {
+      product_code =
+        req.query.product_code || process.env.ESEWA_MERCHANT_CODE || "EPAYTEST";
+      total_amount = req.query.total_amount;
+      transaction_uuid = req.query.transaction_uuid;
+    }
+    if (!product_code || !total_amount || !transaction_uuid) {
+      return res
+        .status(400)
+        .json({ message: "Missing required query parameters." });
+    }
+    // Call eSewa v2 status API
+    // Log parameters sent to eSewa status API
+    console.log("Calling eSewa status API with:", {
+      product_code,
+      total_amount,
+      transaction_uuid,
+    });
+    const verifyUrl =
+      process.env.ESEWA_VERIFY_URL ||
+      "https://rc.esewa.com.np/api/epay/transaction/status/";
+    try {
+      const response = await axios.get(verifyUrl, {
+        params: {
+          product_code,
+          total_amount,
+          transaction_uuid,
         },
+      });
+      // Debug log
+      console.log("eSewa v2 status API response:", response.data);
+      if (response.data.status === "COMPLETE") {
+        // Find booking first for explicit logging
+        const booking = await BookingModel.findOne({ transaction_uuid });
+        if (!booking) {
+          console.log(
+            "Booking not found for transaction_uuid:",
+            transaction_uuid,
+          );
+          return res.status(200).json({
+            status: "PAID",
+            message: "Payment verified, but booking not found for update.",
+          });
+        }
+        if (
+          booking.bookingStatus === "cancelled" ||
+          (booking.expiresAt && booking.expiresAt < new Date())
+        ) {
+          console.log("Booking expired or cancelled:", {
+            transaction_uuid,
+            bookingStatus: booking.bookingStatus,
+            expiresAt: booking.expiresAt,
+          });
+          return res
+            .status(400)
+            .json({ message: "Booking expired or cancelled" });
+        }
+        booking.paymentStatus = "paid";
+        booking.bookingStatus = "confirmed";
+        await booking.save();
+        console.log("Booking updated:", {
+          transaction_uuid,
+          paymentStatus: booking.paymentStatus,
+          bookingStatus: booking.bookingStatus,
+        });
+        await sendPaymentSuccessEmail(booking);
+        // Redirect to booking details page
+        return res.redirect(
+          `http://localhost:3000/user/bookings/${booking._id}`,
+        );
+      } else {
+        console.log(
+          "Payment not complete or failed for transaction_uuid:",
+          transaction_uuid,
+        );
+        return res.status(400).json({
+          status: "FAILED",
+          message: "Payment not complete or failed.",
+        });
+      }
+    } catch (error: any) {
+      console.error(
+        "eSewa status API error:",
+        error.response ? error.response.data : error.message,
       );
-
-      await BookingModel.findByIdAndUpdate(bookingId, {
-        paymentStatus: "paid",
-        bookingStatus: "confirmed",
-      });
-
-      await AuditLogModel.create({
-        userId: null,
-        action: "PAYMENT_SUCCESS",
-        targetType: "Booking",
-        targetId: bookingId,
-        ipAddress: "stripe-webhook",
-        metadata: { stripeIntentId: intent.id },
-        timestamp: new Date(),
-      });
+      return res
+        .status(400)
+        .json({ message: "Error verifying payment", error });
     }
-
-    if (event.type === "payment_intent.payment_failed") {
-      const intent = event.data.object as Stripe.PaymentIntent;
-
-      await PaymentModel.findOneAndUpdate(
-        { stripePaymentIntentId: intent.id },
-        { status: "failed" },
-      );
-
-      await AuditLogModel.create({
-        userId: null,
-        action: "PAYMENT_FAILED",
-        targetType: "Payment",
-        targetId: intent.id,
-        ipAddress: "stripe-webhook",
-        metadata: { reason: (intent.last_payment_error as any)?.message },
-        timestamp: new Date(),
-      });
-    }
-
-    res.status(200).json({ received: true });
+    // End of catch block, remove stray code
   } catch (error) {
-    console.error("Webhook processing error:", error);
-    res.status(500).json({ message: "Webhook processing failed" });
+    return res.status(500).json({ message: "Error verifying payment", error });
   }
 };
 
-// GET /api/payments/booking/:bookingId
-export const getPaymentByBooking = async (
-  req: Request,
-  res: Response,
-): Promise<void> => {
-  try {
-    const authReq = req as AuthRequest;
-    const travelerId = authReq.user?.userId;
-
-    const booking = await BookingModel.findOne({
-      _id: req.params.bookingId,
-      userId: travelerId,
-    });
-
-    if (!booking) {
-      res.status(404).json({ message: "Booking not found or access denied" });
-      return;
-    }
-
-    const payment = await PaymentModel.findOne({
-      bookingId: req.params.bookingId,
-    });
-
-    if (!payment) {
-      res.status(404).json({ message: "Payment not found" });
-      return;
-    }
-
-    res.status(200).json({ payment });
-  } catch {
-    res.status(500).json({ message: "Internal server error" });
-  }
+// GET /api/payment/esewa/failure
+export const esewaFailure = (req: Request, res: Response) => {
+  return res.status(200).json({ message: "Payment failed or cancelled." });
 };

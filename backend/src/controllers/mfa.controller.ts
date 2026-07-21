@@ -14,7 +14,7 @@ const logAction = async (
   userId: string,
   action: string,
   req: Request,
-  metadata: Record<string, unknown> = {}
+  metadata: Record<string, unknown> = {},
 ) => {
   try {
     await AuditLogModel.create({
@@ -32,10 +32,7 @@ const logAction = async (
 
 // POST /api/mfa/setup
 // Generates secret and QR code — user must verify before MFA is enabled
-export const setupMFA = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
+export const setupMFA = async (req: Request, res: Response): Promise<void> => {
   try {
     const authReq = req as AuthRequest;
     const user = await UserModel.findById(authReq.user?.userId);
@@ -57,7 +54,8 @@ export const setupMFA = async (
     await user.save();
 
     res.status(200).json({
-      message: "Scan the QR code with your authenticator app, then verify to enable MFA",
+      message:
+        "Scan the QR code with your authenticator app, then verify to enable MFA",
       qrCode,
       // Return plain secret for manual entry in authenticator app
       manualEntryKey: secret,
@@ -72,7 +70,7 @@ export const setupMFA = async (
 // Confirms the user can generate valid codes before enabling MFA
 export const verifyMFASetup = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   try {
     const authReq = req as AuthRequest;
@@ -114,7 +112,7 @@ export const verifyMFASetup = async (
 // Called during login flow when user has MFA enabled
 export const validateMFA = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   try {
     const { token, tempUserId } = req.body;
@@ -154,12 +152,12 @@ export const validateMFA = async (
 
     res.status(200).json({
       message: "MFA verified. Login successful",
+      token: jwtToken,
       user: {
         uuid: user.uuid,
         name: user.name,
         email: user.email,
         role: user.role,
-        isHostVerified: user.isHostVerified,
         mfaEnabled: user.mfaEnabled,
       },
     });
@@ -172,14 +170,16 @@ export const validateMFA = async (
 // POST /api/mfa/disable
 export const disableMFA = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   try {
     const authReq = req as AuthRequest;
     const { token } = req.body;
 
     if (!token) {
-      res.status(400).json({ message: "Authenticator code required to disable MFA" });
+      res
+        .status(400)
+        .json({ message: "Authenticator code required to disable MFA" });
       return;
     }
 

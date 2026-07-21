@@ -7,8 +7,7 @@ export interface IUser extends Document {
   name: string;
   email: string;
   password: string;
-  role: "traveler" | "host" | "admin";
-  isHostVerified: boolean;
+  role: "traveler" | "admin";
   isEmailVerified: boolean;
   mfaEnabled: boolean;
   mfaSecret: string | null;
@@ -57,12 +56,8 @@ const UserSchema: Schema = new Schema<IUser>(
     },
     role: {
       type: String,
-      enum: ["traveler", "host", "admin"],
+      enum: ["traveler", "admin"],
       default: "traveler",
-    },
-    isHostVerified: {
-      type: Boolean,
-      default: false,
     },
     isEmailVerified: {
       type: Boolean,

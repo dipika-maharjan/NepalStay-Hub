@@ -1,10 +1,10 @@
 import { Router } from "express";
 import {
-  getExtrasByAccommodation,
   createExtra,
   updateExtra,
   deleteExtra,
   getAllOptionalExtras,
+  getExtraById,
 } from "../controllers/optionalExtra.controller";
 import {
   requireAuth,
@@ -14,7 +14,7 @@ import {
 const router = Router();
 
 router.get("/", requireAuth, requireRole("admin"), getAllOptionalExtras);
-router.get("/:accommodationId", getExtrasByAccommodation);
+router.get("/:id", requireAuth, requireRole("admin"), getExtraById);
 router.post(
   "/",
   requireAuth,

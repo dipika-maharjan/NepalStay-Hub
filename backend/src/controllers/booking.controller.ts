@@ -144,25 +144,7 @@ export const getMyBookings = async (
   }
 };
 
-// GET /api/bookings/host — host's incoming bookings
-export const getHostBookings = async (
-  req: Request,
-  res: Response,
-): Promise<void> => {
-  try {
-    const authReq = req as AuthRequest;
-    const bookings = await BookingModel.find({ hostId: authReq.user?.userId })
-      .populate("userId", "name email")
-      .populate("accommodationId", "title")
-      .populate("roomTypeId", "name")
-      .sort({ createdAt: -1 });
-    res.status(200).json({ bookings });
-  } catch {
-    res.status(500).json({ message: "Internal server error" });
-  }
-};
-
-// GET /api/bookings/:id — IDOR: only traveler or host of this booking
+// GET /api/bookings/:id — IDOR: only traveler or admin
 export const getBookingById = async (
   req: Request,
   res: Response,
@@ -170,10 +152,14 @@ export const getBookingById = async (
   try {
     const authReq = req as AuthRequest;
     const userId = authReq.user?.userId;
-    const booking = await BookingModel.findOne({
-      _id: req.params.id,
-      $or: [{ userId: userId }, { hostId: userId }],
-    })
+    const role = authReq.user?.role;
+    
+    const query: any = { _id: req.params.id };
+    if (role !== "admin") {
+      query.userId = userId;
+    }
+    
+    const booking = await BookingModel.findOne(query)
       .populate("accommodationId", "title images address location")
       .populate("roomTypeId", "name pricePerNight")
       .populate("userId", "name email");
@@ -196,10 +182,14 @@ export const cancelBooking = async (
   try {
     const authReq = req as AuthRequest;
     const userId = authReq.user?.userId;
-    const booking = await BookingModel.findOne({
-      _id: req.params.id,
-      $or: [{ userId: userId }, { hostId: userId }],
-    });
+    const role = authReq.user?.role;
+    
+    const query: any = { _id: req.params.id };
+    if (role !== "admin") {
+      query.userId = userId;
+    }
+    
+    const booking = await BookingModel.findOne(query);
 
     if (!booking) {
       res.status(404).json({ message: "Booking not found or access denied" });

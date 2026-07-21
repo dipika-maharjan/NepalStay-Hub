@@ -44,7 +44,7 @@ export const loginSpeedLimiter = slowDown({
 // Strict limit for login endpoint
 export const loginRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: 15,
   message: {
     message: "Too many login attempts, please try again after 15 minutes",
   },

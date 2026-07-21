@@ -311,12 +311,12 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     res.status(200).json({
       message: "Login successful",
+      token, // <-- Add this
       user: {
         uuid: user.uuid,
         name: user.name,
         email: user.email,
         role: user.role,
-        isHostVerified: user.isHostVerified,
         mfaEnabled: user.mfaEnabled,
       },
     });

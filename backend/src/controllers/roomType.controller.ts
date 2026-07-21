@@ -42,6 +42,7 @@ export const getRoomTypesByAccommodation = async (
     }).sort({ createdAt: -1 });
 
     res.status(200).json({
+      success: true,
       message: "Room types fetched successfully",
       data: roomTypes,
     });
@@ -49,6 +50,30 @@ export const getRoomTypesByAccommodation = async (
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+export const getRoomTypeById = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const roomType = await RoomTypeModel.findById(id).populate("accommodationId", "name title");
+
+    if (!roomType) {
+      res.status(404).json({ message: "Room type not found", data: null });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Room type fetched successfully",
+      data: roomType,
+    });
+  } catch {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 
 export const getAllRoomTypes = async (
   req: AuthRequest,
@@ -58,6 +83,7 @@ export const getAllRoomTypes = async (
     const includeInactive = req.query.includeInactive === "true";
     let filter: any = {};
     if (!includeInactive) filter.isActive = true;
+    if (req.query.accommodationId) filter.accommodationId = req.query.accommodationId;
 
     const roomTypes = await RoomTypeModel.find(filter)
       .populate("accommodationId", "name")
@@ -115,6 +141,7 @@ export const createRoomType = async (
     });
 
     res.status(201).json({
+      success: true,
       message: "Room type created successfully",
       data: roomType,
     });
@@ -181,6 +208,7 @@ export const updateRoomType = async (
     );
 
     res.status(200).json({
+      success: true,
       message: "Room type updated successfully",
       data: updatedRoomType,
     });
@@ -219,6 +247,7 @@ export const deleteRoomType = async (
     );
 
     res.status(200).json({
+      success: true,
       message: "Room type deleted successfully",
       data: deletedRoomType,
     });

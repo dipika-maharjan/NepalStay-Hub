@@ -85,6 +85,26 @@ export const getReviewsByAccommodation = async (
   }
 };
 
+// GET /api/reviews
+export const getAllReviewsAdmin = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    let filter: any = {};
+    if (req.query.accommodationId) {
+      filter.accommodationId = req.query.accommodationId;
+    }
+    const reviews = await ReviewModel.find(filter)
+      .populate("userId", "name profileImage")
+      .populate("accommodationId", "name")
+      .sort({ createdAt: -1 });
+    res.status(200).json({ reviews });
+  } catch {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 // DELETE /api/reviews/:id — traveler own review or admin
 export const deleteReview = async (
   req: Request,

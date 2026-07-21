@@ -41,10 +41,13 @@ export const getAccommodations = async (
     const total = await AccommodationModel.countDocuments(filter);
 
     res.status(200).json({
-      accommodations,
+      success: true,
+      message: "Accommodations fetched successfully",
+      data: accommodations,
       pagination: { page, limit, total, pages: Math.ceil(total / limit) },
     });
-  } catch {
+  } catch (error) {
+    console.error("Error in getAccommodations:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -120,6 +123,11 @@ export const createAccommodation = async (
         (f) => `/uploads/accommodations/${f.filename}`,
       ) || [];
 
+    const shouldApprove =
+      req.body.isApprovedByAdmin !== undefined
+        ? req.body.isApprovedByAdmin
+        : true;
+
     const accommodation = await AccommodationModel.create({
       hostId,
       title: title.trim(),
@@ -134,7 +142,7 @@ export const createAccommodation = async (
       amenities: amenities ? JSON.parse(amenities) : [],
       images,
       isActive: true,
-      isApprovedByAdmin: false,
+      isApprovedByAdmin: shouldApprove,
     });
 
     await AuditLogModel.create({
@@ -147,12 +155,11 @@ export const createAccommodation = async (
       timestamp: new Date(),
     });
 
-    res
-      .status(201)
-      .json({
-        message: "Accommodation created. Pending admin approval.",
-        accommodation,
-      });
+    res.status(201).json({
+      success: true,
+      message: "Accommodation created successfully.",
+      accommodation,
+    });
   } catch {
     res.status(500).json({ message: "Internal server error" });
   }
@@ -166,11 +173,9 @@ export const updateAccommodation = async (
   try {
     const authReq = req as AuthRequest;
     const hostId = authReq.user?.userId;
+    const filter: any = { _id: req.params.id };
 
-    const existing = await AccommodationModel.findOne({
-      _id: req.params.id,
-      hostId,
-    });
+    const existing = await AccommodationModel.findOne(filter);
     if (!existing) {
       res
         .status(404)
@@ -194,8 +199,6 @@ export const updateAccommodation = async (
       if (req.body[key] !== undefined) updates[key] = req.body[key];
     }
 
-    updates.isApprovedByAdmin = false;
-
     const accommodation = await AccommodationModel.findByIdAndUpdate(
       req.params.id,
       { $set: updates },
@@ -212,12 +215,10 @@ export const updateAccommodation = async (
       timestamp: new Date(),
     });
 
-    res
-      .status(200)
-      .json({
-        message: "Accommodation updated. Pending re-approval.",
-        accommodation,
-      });
+    res.status(200).json({
+      message: "Accommodation updated successfully.",
+      accommodation,
+    });
   } catch {
     res.status(500).json({ message: "Internal server error" });
   }
@@ -231,10 +232,9 @@ export const deleteAccommodation = async (
   try {
     const authReq = req as AuthRequest;
     const hostId = authReq.user?.userId;
-    const accommodation = await AccommodationModel.findOneAndDelete({
-      _id: req.params.id,
-      hostId,
-    });
+    const filter: any = { _id: req.params.id };
+
+    const accommodation = await AccommodationModel.findOneAndDelete(filter);
     if (!accommodation) {
       res
         .status(404)
@@ -301,6 +301,21 @@ export const adminApproveAccommodation = async (
     });
 
     res.status(200).json({ message: "Accommodation approved", accommodation });
+  } catch {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// GET /api/accommodations/admin/all — admin only
+export const adminGetAllAccommodations = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const accommodations = await AccommodationModel.find()
+      .populate("hostId", "name profileImage")
+      .sort({ createdAt: -1 });
+    res.status(200).json({ success: true, data: accommodations });
   } catch {
     res.status(500).json({ message: "Internal server error" });
   }

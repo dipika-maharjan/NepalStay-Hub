@@ -23,7 +23,7 @@ export const requireAuth = async (
 
   try {
     const token =
-      authReq.cookies?.token || authReq.headers.authorization?.replace("Bearer ", "");
+      authReq.headers.authorization?.replace("Bearer ", "") || authReq.cookies?.token;
 
     if (!token) {
       res.status(401).json({ message: "Authentication required" });
@@ -61,21 +61,3 @@ export const requireRole = (...roles: string[]) => {
   };
 };
 
-export const requireHostVerified = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> => {
-  const authReq = asAuthRequest(req);
-
-  if (!authReq.user) {
-    res.status(401).json({ message: "Authentication required" });
-    return;
-  }
-  const user = await UserModel.findById(authReq.user.userId);
-  if (!user?.isHostVerified) {
-    res.status(403).json({ message: "Host verification required" });
-    return;
-  }
-  next();
-};

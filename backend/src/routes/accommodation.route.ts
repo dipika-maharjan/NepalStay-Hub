@@ -5,13 +5,11 @@ import {
   createAccommodation,
   updateAccommodation,
   deleteAccommodation,
-  getMyAccommodations,
-  adminApproveAccommodation,
+  adminGetAllAccommodations,
 } from "../controllers/accommodation.controller";
 import {
   requireAuth,
   requireRole,
-  requireHostVerified,
 } from "../middleware/auth.middleware";
 import { accommodationUpload } from "../middleware/upload.middleware";
 
@@ -19,33 +17,28 @@ const router = Router();
 
 // Public routes
 router.get("/", getAccommodations);
-router.get("/my", requireAuth, requireRole("host"), getMyAccommodations);
+router.get(
+  "/admin/all",
+  requireAuth,
+  requireRole("admin"),
+  adminGetAllAccommodations,
+);
 router.get("/:id", getAccommodationById);
 
-// Host only — must be verified
+// Admin Only
 router.post(
   "/",
   requireAuth,
-  requireRole("host"),
-  requireHostVerified,
+  requireRole("admin"),
   accommodationUpload.array("images", 10),
   createAccommodation,
 );
 router.put(
   "/:id",
   requireAuth,
-  requireRole("host"),
-  requireHostVerified,
+  requireRole("admin"),
   updateAccommodation,
 );
-router.delete("/:id", requireAuth, requireRole("host"), deleteAccommodation);
-
-// Admin only
-router.put(
-  "/admin/:id/approve",
-  requireAuth,
-  requireRole("admin"),
-  adminApproveAccommodation,
-);
+router.delete("/:id", requireAuth, requireRole("admin"), deleteAccommodation);
 
 export default router;

@@ -16,7 +16,6 @@ const logger = winston.createLogger({
       db: process.env.MONGODB_URI!,
       collection: "logs",
       level: "info",
-      options: { useUnifiedTopology: true },
       // Never log sensitive fields
       metaKey: "metadata",
     }),

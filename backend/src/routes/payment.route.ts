@@ -1,27 +1,13 @@
-import { Router } from "express";
-import {
-  createPaymentIntent,
-  stripeWebhook,
-  getPaymentByBooking,
-} from "../controllers/payment.controller";
-import { requireAuth, requireRole } from "../middleware/auth.middleware";
+import { Router } from 'express';
+import { initiateEsewaPayment, esewaSuccess, esewaFailure } from '../controllers/payment.controller';
 
 const router = Router();
 
-// Webhook must use raw body — registered separately in app.ts
-router.post("/webhook", stripeWebhook);
-
-router.post(
-  "/create-intent",
-  requireAuth,
-  requireRole("traveler"),
-  createPaymentIntent,
-);
-router.get(
-  "/booking/:bookingId",
-  requireAuth,
-  requireRole("traveler"),
-  getPaymentByBooking,
-);
+// Initiate eSewa payment
+router.post('/esewa/initiate', initiateEsewaPayment);
+// eSewa success callback
+router.get('/esewa/success', esewaSuccess);
+// eSewa failure callback
+router.get('/esewa/failure', esewaFailure);
 
 export default router;

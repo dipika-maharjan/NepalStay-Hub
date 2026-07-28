@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Eye } from "lucide-react";
+import { Eye, Check } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { RegisterData, registerSchema } from "../schema";
@@ -30,6 +30,7 @@ export default function RegisterForm() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<RegisterData>({
     resolver: zodResolver(registerSchema),
@@ -40,6 +41,36 @@ export default function RegisterForm() {
       confirmPassword: "",
     },
   });
+
+  const passwordValue = watch("password", "");
+
+  const hasLength = passwordValue.length >= 8;
+  const hasUpper = /[A-Z]/.test(passwordValue);
+  const hasLower = /[a-z]/.test(passwordValue);
+  const hasNumber = /[0-9]/.test(passwordValue);
+  const hasSpecial = /[^A-Za-z0-9]/.test(passwordValue);
+  
+  const passedChecks = [hasLength, hasUpper, hasLower, hasNumber, hasSpecial].filter(Boolean).length;
+  
+  let strengthLabel = "Weak";
+  let strengthColor = "text-red-500";
+  let barColor = "bg-red-500";
+  let barWidth = "w-1/3";
+  
+  if (passwordValue.length === 0) {
+    strengthLabel = "";
+    barWidth = "w-0";
+  } else if (passedChecks === 5) {
+    strengthLabel = "Strong";
+    strengthColor = "text-green-500";
+    barColor = "bg-green-500";
+    barWidth = "w-full";
+  } else if (passedChecks >= 3) {
+    strengthLabel = "Medium";
+    strengthColor = "text-yellow-500";
+    barColor = "bg-yellow-500";
+    barWidth = "w-2/3";
+  }
 
   const onSubmit = async (data: RegisterData) => {
     setError("");
@@ -172,10 +203,37 @@ export default function RegisterForm() {
                 <Eye size={18} />
               </button>
             </div>
-            <p className="text-[11px] text-gray-500">
-              Use 8+ characters with uppercase, lowercase, a number, and a
-              symbol.
-            </p>
+            
+            {/* Password Strength Meter */}
+            {passwordValue.length > 0 && (
+              <div className="mt-2 p-3 bg-gray-50 rounded-lg border border-gray-100 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Password Strength</span>
+                  <span className={`text-xs font-bold ${strengthColor}`}>{strengthLabel}</span>
+                </div>
+                <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                  <div className={`h-full ${barColor} ${barWidth} transition-all duration-300`}></div>
+                </div>
+                <div className="grid grid-cols-2 gap-y-1.5 gap-x-2 text-[11px]">
+                  <div className={`flex items-center gap-1 ${hasLength ? "text-green-600 font-medium" : "text-gray-400"}`}>
+                    <Check size={12} className={hasLength ? "opacity-100" : "opacity-0"} /> 8+ characters
+                  </div>
+                  <div className={`flex items-center gap-1 ${hasUpper ? "text-green-600 font-medium" : "text-gray-400"}`}>
+                    <Check size={12} className={hasUpper ? "opacity-100" : "opacity-0"} /> Uppercase
+                  </div>
+                  <div className={`flex items-center gap-1 ${hasLower ? "text-green-600 font-medium" : "text-gray-400"}`}>
+                    <Check size={12} className={hasLower ? "opacity-100" : "opacity-0"} /> Lowercase
+                  </div>
+                  <div className={`flex items-center gap-1 ${hasNumber ? "text-green-600 font-medium" : "text-gray-400"}`}>
+                    <Check size={12} className={hasNumber ? "opacity-100" : "opacity-0"} /> Number
+                  </div>
+                  <div className={`flex items-center gap-1 col-span-2 ${hasSpecial ? "text-green-600 font-medium" : "text-gray-400"}`}>
+                    <Check size={12} className={hasSpecial ? "opacity-100" : "opacity-0"} /> Special character
+                  </div>
+                </div>
+              </div>
+            )}
+            
             {errors.password && (
               <p className="text-xs text-red-500">{errors.password.message}</p>
             )}

@@ -8,13 +8,15 @@ import { CreateBookingDTO, UpdateBookingDTO } from "../dtos/booking.dto";
 import { HttpError } from "../errors/http-error";
 import { TAX_PERCENT, SERVICE_FEE } from "../config";
 
-const bookingRepository = new BookingRepository();
-const bookingExtraRepository = new BookingExtraRepository();
-const roomTypeRepository = new RoomTypeRepository();
-const optionalExtraRepository = new OptionalExtraRepository();
-const accommodationRepository = new AccommodationRepository();
-
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+type BookingServiceDependencies = {
+  bookingRepository?: BookingRepository;
+  bookingExtraRepository?: BookingExtraRepository;
+  roomTypeRepository?: RoomTypeRepository;
+  optionalExtraRepository?: OptionalExtraRepository;
+  accommodationRepository?: AccommodationRepository;
+};
 
 // In-memory lock to prevent race conditions during booking creation
 // Key format: roomTypeId:checkIn:checkOut
@@ -28,7 +30,32 @@ const calculateNights = (checkIn: Date, checkOut: Date): number => {
 };
 
 export class BookingService {
+  private bookingRepository: BookingRepository;
+  private bookingExtraRepository: BookingExtraRepository;
+  private roomTypeRepository: RoomTypeRepository;
+  private optionalExtraRepository: OptionalExtraRepository;
+  private accommodationRepository: AccommodationRepository;
+
+  constructor(dependencies: BookingServiceDependencies = {}) {
+    this.bookingRepository =
+      dependencies.bookingRepository ?? new BookingRepository();
+    this.bookingExtraRepository =
+      dependencies.bookingExtraRepository ?? new BookingExtraRepository();
+    this.roomTypeRepository =
+      dependencies.roomTypeRepository ?? new RoomTypeRepository();
+    this.optionalExtraRepository =
+      dependencies.optionalExtraRepository ?? new OptionalExtraRepository();
+    this.accommodationRepository =
+      dependencies.accommodationRepository ?? new AccommodationRepository();
+  }
+
   async createBooking(data: CreateBookingDTO, userId: string) {
+    const bookingRepository = this.bookingRepository;
+    const bookingExtraRepository = this.bookingExtraRepository;
+    const roomTypeRepository = this.roomTypeRepository;
+    const optionalExtraRepository = this.optionalExtraRepository;
+    const accommodationRepository = this.accommodationRepository;
+
     // Create a unique lock key for this room type and date range
     const lockKey = `${data.roomTypeId}:${data.checkIn}:${data.checkOut}`;
 
@@ -49,10 +76,13 @@ export class BookingService {
         userId,
         data.accommodationId,
         new Date(data.checkIn),
-        new Date(data.checkOut)
+        new Date(data.checkOut),
       );
       if (overlapping.length > 0) {
-        throw new HttpError(409, "You already have a booking for these dates at this accommodation.");
+        throw new HttpError(
+          409,
+          "You already have a booking for these dates at this accommodation.",
+        );
       }
       const accommodation = await accommodationRepository.getAccommodationById(
         data.accommodationId,
@@ -237,6 +267,9 @@ export class BookingService {
   }
 
   async getBookingById(id: string) {
+    const bookingRepository = this.bookingRepository;
+    const bookingExtraRepository = this.bookingExtraRepository;
+
     try {
       const booking = await bookingRepository.getBookingById(id);
       if (!booking) {
@@ -263,6 +296,8 @@ export class BookingService {
   }
 
   async getUserBookings(userId: string) {
+    const bookingRepository = this.bookingRepository;
+
     try {
       return await bookingRepository.getUserBookings(userId);
     } catch (error: Error | any) {
@@ -274,6 +309,8 @@ export class BookingService {
   }
 
   async getAllBookings() {
+    const bookingRepository = this.bookingRepository;
+
     try {
       return await bookingRepository.getAllBookings();
     } catch (error: Error | any) {
@@ -288,6 +325,8 @@ export class BookingService {
       paymentStatus?: "pending" | "paid" | "refunded";
     },
   ) {
+    const bookingRepository = this.bookingRepository;
+
     try {
       const booking = await bookingRepository.getBookingById(id);
       if (!booking) {
@@ -306,6 +345,8 @@ export class BookingService {
   }
 
   async cancelBooking(id: string) {
+    const bookingRepository = this.bookingRepository;
+
     try {
       const booking = await bookingRepository.getBookingById(id);
       if (!booking) {
@@ -345,6 +386,9 @@ export class BookingService {
   }
 
   async deleteBooking(id: string) {
+    const bookingRepository = this.bookingRepository;
+    const bookingExtraRepository = this.bookingExtraRepository;
+
     try {
       const booking = await bookingRepository.getBookingById(id);
       if (!booking) {
@@ -364,6 +408,12 @@ export class BookingService {
   }
 
   async updateBooking(id: string, data: UpdateBookingDTO) {
+    const bookingRepository = this.bookingRepository;
+    const bookingExtraRepository = this.bookingExtraRepository;
+    const roomTypeRepository = this.roomTypeRepository;
+    const optionalExtraRepository = this.optionalExtraRepository;
+    const accommodationRepository = this.accommodationRepository;
+
     try {
       const booking = await bookingRepository.getBookingById(id);
       if (!booking) {
@@ -381,10 +431,11 @@ export class BookingService {
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      if (booking.checkIn && new Date(booking.checkIn) <= today) {
+      const bookingCheckIn = booking.checkIn ? new Date(booking.checkIn) : null;
+      if (bookingCheckIn && bookingCheckIn < today) {
         throw new HttpError(
           400,
-          "Cannot edit a booking on or after check-in date",
+          "Cannot edit a booking before its check-in date",
         );
       }
 

@@ -4,6 +4,10 @@ import { AccommodationModel } from "../models/accommodation.model";
 import { RoomTypeModel } from "../models/roomType.model";
 import { AuditLogModel } from "../models/auditLog.model";
 import { AuthRequest } from "../middleware/auth.middleware";
+import { BookingService } from "../services/booking.service";
+import { HttpError } from "../errors/http-error";
+
+const bookingService = new BookingService();
 
 // POST /api/bookings
 export const createBooking = async (
@@ -63,11 +67,9 @@ export const createBooking = async (
     }
 
     if (Number(guests) > roomType.maxGuests) {
-      res
-        .status(400)
-        .json({
-          message: `Maximum ${roomType.maxGuests} guests allowed for this room`,
-        });
+      res.status(400).json({
+        message: `Maximum ${roomType.maxGuests} guests allowed for this room`,
+      });
       return;
     }
 
@@ -153,12 +155,12 @@ export const getBookingById = async (
     const authReq = req as AuthRequest;
     const userId = authReq.user?.userId;
     const role = authReq.user?.role;
-    
+
     const query: any = { _id: req.params.id };
     if (role !== "admin") {
       query.userId = userId;
     }
-    
+
     const booking = await BookingModel.findOne(query)
       .populate("accommodationId", "title images address location")
       .populate("roomTypeId", "name pricePerNight")
@@ -174,6 +176,78 @@ export const getBookingById = async (
   }
 };
 
+// PATCH /api/bookings/:id
+export const updateBooking = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const authReq = req as AuthRequest;
+    const userId = authReq.user?.userId;
+    const role = authReq.user?.role;
+
+    const query: any = { _id: req.params.id };
+    if (role !== "admin") {
+      query.userId = userId;
+    }
+
+    const booking = await BookingModel.findOne(query);
+
+    if (!booking) {
+      res.status(404).json({ message: "Booking not found or access denied" });
+      return;
+    }
+
+    const updatedBooking = await bookingService.updateBooking(
+      String(booking._id),
+      req.body,
+    );
+
+    res
+      .status(200)
+      .json({
+        message: "Booking updated successfully",
+        booking: updatedBooking,
+      });
+  } catch (error: unknown) {
+    if (error instanceof HttpError) {
+      res.status(error.statusCode).json({ message: error.message });
+      return;
+    }
+
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// DELETE /api/bookings/:id
+export const deleteBooking = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const authReq = req as AuthRequest;
+    const userId = authReq.user?.userId;
+    const role = authReq.user?.role;
+
+    const query: any = { _id: req.params.id };
+    if (role !== "admin") {
+      query.userId = userId;
+    }
+
+    const booking = await BookingModel.findOne(query);
+
+    if (!booking) {
+      res.status(404).json({ message: "Booking not found or access denied" });
+      return;
+    }
+
+    await BookingModel.findByIdAndDelete(req.params.id);
+    res.status(200).json({ message: "Booking deleted successfully" });
+  } catch {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 // PUT /api/bookings/:id/cancel
 export const cancelBooking = async (
   req: Request,
@@ -183,12 +257,12 @@ export const cancelBooking = async (
     const authReq = req as AuthRequest;
     const userId = authReq.user?.userId;
     const role = authReq.user?.role;
-    
+
     const query: any = { _id: req.params.id };
     if (role !== "admin") {
       query.userId = userId;
     }
-    
+
     const booking = await BookingModel.findOne(query);
 
     if (!booking) {

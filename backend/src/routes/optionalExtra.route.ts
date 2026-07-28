@@ -6,21 +6,13 @@ import {
   getAllOptionalExtras,
   getExtraById,
 } from "../controllers/optionalExtra.controller";
-import {
-  requireAuth,
-  requireRole,
-} from "../middleware/auth.middleware";
+import { requireAuth, requireRole } from "../middleware/auth.middleware";
 
 const router = Router();
 
-router.get("/", requireAuth, requireRole("admin"), getAllOptionalExtras);
-router.get("/:id", requireAuth, requireRole("admin"), getExtraById);
-router.post(
-  "/",
-  requireAuth,
-  requireRole("admin"),
-  createExtra,
-);
+router.get("/", requireAuth, getAllOptionalExtras);
+router.get("/:id", requireAuth, getExtraById);
+router.post("/", requireAuth, requireRole("admin"), createExtra);
 router.put("/:id", requireAuth, requireRole("admin"), updateExtra);
 router.delete("/:id", requireAuth, requireRole("admin"), deleteExtra);
 

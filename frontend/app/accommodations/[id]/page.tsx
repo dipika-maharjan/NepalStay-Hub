@@ -97,7 +97,7 @@ export default function AccommodationDetailPage() {
   const searchParams = useSearchParams();
   const { isAuthenticated } = useAuth();
   const id = params?.id;
-  
+
   const reviewBookingId = searchParams?.get("reviewBookingId");
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
@@ -114,7 +114,9 @@ export default function AccommodationDetailPage() {
   const [checkOut, setCheckOut] = useState("");
   const [guests, setGuests] = useState(1);
   const [specialRequest, setSpecialRequest] = useState("");
-  const [paymentChoice, setPaymentChoice] = useState<"pay_now" | "pay_later">("pay_now");
+  const [paymentChoice, setPaymentChoice] = useState<"pay_now" | "pay_later">(
+    "pay_now",
+  );
   const [submitting, setSubmitting] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
@@ -162,7 +164,11 @@ export default function AccommodationDetailPage() {
     if (!reviewBookingId) return;
     setSubmittingReview(true);
     try {
-      await createReview({ bookingId: reviewBookingId, rating: reviewRating, comment: reviewComment });
+      await createReview({
+        bookingId: reviewBookingId,
+        rating: reviewRating,
+        comment: reviewComment,
+      });
       toast.success("Review submitted successfully!");
       setReviewComment("");
       // Refresh reviews
@@ -171,7 +177,11 @@ export default function AccommodationDetailPage() {
       // Remove query param
       router.replace(`/accommodations/${id}`);
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || error.message || "Failed to submit review");
+      toast.error(
+        error?.response?.data?.message ||
+          error.message ||
+          "Failed to submit review",
+      );
     } finally {
       setSubmittingReview(false);
     }
@@ -278,32 +288,35 @@ export default function AccommodationDetailPage() {
         toast.success("Booking request created! Redirecting to payment...");
         try {
           // api.post returns axios response, so booking is usually at response.data or response.data.data
-          const bookingId = response.data?.booking?._id || response.data?.data?._id || response.data?._id;
+          const bookingId =
+            response.data?.booking?._id ||
+            response.data?.data?._id ||
+            response.data?._id;
           if (!bookingId) throw new Error("Booking ID not found in response.");
-          
+
           const paymentRes = await initiateEsewaPayment(totalPrice, bookingId);
-          
+
           const form = document.createElement("form");
           form.method = "POST";
           form.action = paymentRes.esewaUrl;
-          
+
           for (const key in paymentRes.formData) {
-              const input = document.createElement("input");
-              input.type = "hidden";
-              input.name = key;
-              input.value = paymentRes.formData[key];
-              form.appendChild(input);
+            const input = document.createElement("input");
+            input.type = "hidden";
+            input.name = key;
+            input.value = paymentRes.formData[key];
+            form.appendChild(input);
           }
-          
+
           document.body.appendChild(form);
           form.submit();
         } catch (paymentErr) {
           toast.error("Failed to initiate eSewa payment. You can pay later.");
-          router.push("/bookings");
+          router.push("/user/bookings");
         }
       } else {
         toast.success("Booking request created successfully!");
-        router.push("/bookings");
+        router.push("/user/bookings");
       }
     } catch (error: any) {
       toast.error(
@@ -582,12 +595,19 @@ export default function AccommodationDetailPage() {
 
             <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
               <h2 className="text-xl font-semibold text-green-900">Reviews</h2>
-              
+
               {reviewBookingId && (
-                <form onSubmit={handleSubmitReview} className="mt-4 mb-8 bg-gray-50 p-4 rounded-2xl border border-gray-200">
-                  <h3 className="text-lg font-semibold text-green-900 mb-3">Leave a Review</h3>
+                <form
+                  onSubmit={handleSubmitReview}
+                  className="mt-4 mb-8 bg-gray-50 p-4 rounded-2xl border border-gray-200"
+                >
+                  <h3 className="text-lg font-semibold text-green-900 mb-3">
+                    Leave a Review
+                  </h3>
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Rating</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Rating
+                    </label>
                     <div className="flex items-center gap-2">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <button
@@ -598,14 +618,20 @@ export default function AccommodationDetailPage() {
                         >
                           <Star
                             size={24}
-                            className={star <= reviewRating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}
+                            className={
+                              star <= reviewRating
+                                ? "fill-yellow-400 text-yellow-400"
+                                : "text-gray-300"
+                            }
                           />
                         </button>
                       ))}
                     </div>
                   </div>
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Comment</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Comment
+                    </label>
                     <textarea
                       required
                       value={reviewComment}
@@ -798,7 +824,11 @@ export default function AccommodationDetailPage() {
                 ) : (
                   <CalendarDays size={18} />
                 )}
-                {submitting ? "Processing..." : (paymentChoice === "pay_now" ? "Confirm & Pay with eSewa" : "Book Now")}
+                {submitting
+                  ? "Processing..."
+                  : paymentChoice === "pay_now"
+                    ? "Confirm & Pay with eSewa"
+                    : "Book Now"}
               </button>
             </form>
           </aside>

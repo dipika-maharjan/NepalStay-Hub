@@ -8,6 +8,7 @@ import Navbar from "@/app/components/navbar/Navbar";
 import api from "@/lib/api";
 import { normalizeImageUrl } from "@/lib/image";
 import useAuth from "@/context/AuthContext";
+import { initiateEsewaPayment } from "@/lib/api/payment";
 
 interface BookingItem {
   _id: string;
@@ -25,7 +26,8 @@ interface BookingItem {
   nights: number;
   guests: number;
   totalPrice: number;
-  status: string;
+  status?: string;
+  bookingStatus?: string;
   paymentStatus: string;
   createdAt: string;
 }
@@ -52,12 +54,10 @@ export default function BookingsPage() {
       setFetching(true);
       const response = await api.get("/bookings/my");
       setBookings(response.data?.bookings || []);
-    } catch (error: any) {
-      toast.error(
-        error.response?.data?.message ||
-          error.message ||
-          "Failed to load bookings",
-      );
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Failed to load bookings";
+      toast.error(message);
     } finally {
       setFetching(false);
     }
@@ -78,12 +78,10 @@ export default function BookingsPage() {
       await api.put(`/bookings/${bookingId}/cancel`);
       toast.success("Booking cancelled successfully");
       await fetchBookings();
-    } catch (error: any) {
-      toast.error(
-        error.response?.data?.message ||
-          error.message ||
-          "Failed to cancel booking",
-      );
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Failed to cancel booking";
+      toast.error(message);
     }
   };
 
@@ -194,8 +192,15 @@ export default function BookingsPage() {
         ) : (
           <div className="space-y-4">
             {bookings.map((booking) => {
-              const canCancel =
-                booking.status === "pending" || booking.status === "confirmed";
+              const bookingStatus =
+                booking.bookingStatus?.toLowerCase() ||
+                booking.status?.toLowerCase() ||
+                "pending";
+              const paymentStatus =
+                booking.paymentStatus?.toLowerCase() || "pending";
+              const canCancel = ["pending", "confirmed"].includes(
+                bookingStatus,
+              );
 
               return (
                 <article key={booking._id} className="card overflow-hidden p-0">
@@ -224,12 +229,12 @@ export default function BookingsPage() {
                           <span
                             className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getStatusBadgeClasses(booking.status)}`}
                           >
-                            {booking.status}
+                            {bookingStatus}
                           </span>
                           <span
                             className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getPaymentBadgeClasses(booking.paymentStatus)}`}
                           >
-                            {booking.paymentStatus}
+                            {paymentStatus}
                           </span>
                         </div>
                       </div>
@@ -281,41 +286,60 @@ export default function BookingsPage() {
                           </p>
                         </div>
 
-                        {canCancel && (
-                          <button
-                            onClick={() => handleCancel(booking._id)}
-                            className="btn-danger"
+                        <div className="flex flex-wrap gap-2">
+                          <Link
+                            href={`/user/bookings/${booking._id}`}
+                            className="inline-flex items-center justify-center rounded border border-[#0c7272] px-4 py-2 text-sm font-semibold text-[#0c7272] transition hover:bg-[#0c7272]/10"
                           >
-                            Cancel booking
-                          </button>
-                        )}
-                        {booking.paymentStatus === 'pending' && booking.status !== 'cancelled' && (
-                          <button
-                            onClick={async () => {
-                              try {
-                                const { initiateEsewaPayment } = await import("@/lib/api/payment");
-                                const paymentRes = await initiateEsewaPayment(booking.totalPrice, booking._id);
-                                const form = document.createElement("form");
-                                form.method = "POST";
-                                form.action = paymentRes.esewaUrl;
-                                for (const key in paymentRes.formData) {
-                                  const input = document.createElement("input");
-                                  input.type = "hidden";
-                                  input.name = key;
-                                  input.value = paymentRes.formData[key];
-                                  form.appendChild(input);
-                                }
-                                document.body.appendChild(form);
-                                form.submit();
-                              } catch (err: any) {
-                                toast.error(err.message || "Failed to initiate payment.");
-                              }
-                            }}
-                            className="rounded bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus:outline-none"
-                          >
-                            Pay with eSewa
-                          </button>
-                        )}
+                            View details
+                          </Link>
+
+                          {paymentStatus === "pending" &&
+                            bookingStatus !== "cancelled" && (
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const paymentRes =
+                                      await initiateEsewaPayment(
+                                        booking.totalPrice,
+                                        booking._id,
+                                      );
+                                    const form = document.createElement("form");
+                                    form.method = "POST";
+                                    form.action = paymentRes.esewaUrl;
+                                    for (const key in paymentRes.formData) {
+                                      const input =
+                                        document.createElement("input");
+                                      input.type = "hidden";
+                                      input.name = key;
+                                      input.value = paymentRes.formData[key];
+                                      form.appendChild(input);
+                                    }
+                                    document.body.appendChild(form);
+                                    form.submit();
+                                  } catch (err: unknown) {
+                                    const message =
+                                      err instanceof Error
+                                        ? err.message
+                                        : "Failed to initiate payment.";
+                                    toast.error(message);
+                                  }
+                                }}
+                                className="rounded bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus:outline-none"
+                              >
+                                Pay with eSewa
+                              </button>
+                            )}
+
+                          {canCancel && (
+                            <button
+                              onClick={() => handleCancel(booking._id)}
+                              className="btn-danger"
+                            >
+                              Cancel booking
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>

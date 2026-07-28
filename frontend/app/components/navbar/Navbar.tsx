@@ -110,6 +110,15 @@ export default function Navbar() {
                       Go to Profile
                     </button>
                     <button
+                      className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-[#0c7272]"
+                      onClick={() => {
+                        setDropdownOpen(false);
+                        router.push("/user/security");
+                      }}
+                    >
+                      Security Center
+                    </button>
+                    <button
                       className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-[#0c7272] border-t border-gray-100"
                       onClick={() => {
                         setDropdownOpen(false);
@@ -175,6 +184,13 @@ export default function Navbar() {
                   onClick={closeMobile}
                 >
                   My Bookings
+                </Link>
+                <Link
+                  href="/user/security"
+                  className="hover:text-black"
+                  onClick={closeMobile}
+                >
+                  Security Center
                 </Link>
                 <Link
                   href="/profile"

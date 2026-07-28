@@ -58,9 +58,17 @@ export default function Navbar() {
                 )}
                 <Link
                   href="/user/bookings"
-                  className="text-gray-600 hover:text-green-800 font-medium"
+                  className="block px-4 py-2 hover:bg-green-50 text-gray-700 hover:text-green-600 transition-colors duration-150"
+                  onClick={closeDropdowns}
                 >
-                  Bookings
+                  My Bookings
+                </Link>
+                <Link
+                  href="/user/security"
+                  className="block px-4 py-2 hover:bg-green-50 text-gray-700 hover:text-green-600 transition-colors duration-150"
+                  onClick={closeDropdowns}
+                >
+                  Security Center
                 </Link>
                 <Link
                   href="/profile"
@@ -125,6 +133,13 @@ export default function Navbar() {
                   onClick={() => setOpen(false)}
                 >
                   Bookings
+                </Link>
+                <Link
+                  href="/user/security"
+                  className="text-gray-700 font-medium"
+                  onClick={() => setOpen(false)}
+                >
+                  Security Center
                 </Link>
                 {user.role === "admin" && (
                   <Link

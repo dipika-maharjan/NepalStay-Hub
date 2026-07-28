@@ -22,6 +22,14 @@ export const API = {
       UPDATE: "/api/admin/users",
       DELETE: "/api/admin/users",
     },
+    IP_BLOCKS: {
+      GET_ALL: "/api/admin/ip-blocks",
+      BLOCK: "/api/admin/ip-blocks",
+      UNBLOCK: (id: string) => `/api/admin/ip-blocks/${id}`,
+    },
+  },
+  SECURITY: {
+    STATUS: "/api/security/status",
   },
   ACCOMMODATION: {
     GET_ALL: "/api/accommodations",

@@ -14,6 +14,7 @@ import roomTypeRoutes from "./routes/roomType.route";
 import optionalExtraRoutes from "./routes/optionalExtra.route";
 import { adminUserRoutes } from "./routes/admin/user.route";
 import ipBlockRoutes from "./routes/admin/ipBlock.route";
+import securityRoutes from "./routes/security.route";
 import {
   generalRateLimiter,
   ipBlockMiddleware,
@@ -112,6 +113,7 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/admin/users", adminUserRoutes);
 app.use("/api/admin/ip-blocks", ipBlockRoutes);
+app.use("/api/security", securityRoutes);
 
 // ─── Static files ─────────────────────────────────────────────────────────
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));

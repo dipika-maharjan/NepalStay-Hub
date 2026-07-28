@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye } from "lucide-react";
+import { Turnstile } from "@marsidev/react-turnstile";
 import { LoginData, loginSchema } from "../schema";
 import { handleLogin } from "@/lib/actions/auth-action";
 import { useAuth } from "../../../context/AuthContext";
@@ -18,10 +19,11 @@ export default function LoginForm() {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<LoginData>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: "" },
+    defaultValues: { email: "", password: "", turnstileToken: "" },
   });
 
   const { setUser, setIsAuthenticated, checkAuth } = useAuth();
@@ -124,6 +126,26 @@ export default function LoginForm() {
             Forgot Password?
           </a>
         </div>
+
+        <div className="flex justify-center my-4">
+          <Turnstile
+            siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || ""}
+            onSuccess={(token) => {
+              setValue("turnstileToken", token, { shouldValidate: true });
+            }}
+            onError={() => {
+              setValue("turnstileToken", "", { shouldValidate: true });
+            }}
+            onExpire={() => {
+              setValue("turnstileToken", "", { shouldValidate: true });
+            }}
+          />
+        </div>
+        {errors.turnstileToken && (
+          <p className="text-xs text-red-500 mt-1 text-center">
+            {errors.turnstileToken.message}
+          </p>
+        )}
 
         <button
           type="submit"

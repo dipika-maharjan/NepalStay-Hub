@@ -125,7 +125,9 @@ export default function Dashboard() {
           <h1 className="text-2xl sm:text-3xl font-bold text-[#0c7272]">
             Welcome, {user?.name || "Traveler"}!
           </h1>
-          <p className="text-gray-600 text-base sm:text-lg break-all">{user?.email}</p>
+          <p className="text-gray-600 text-base sm:text-lg break-all">
+            {user?.email}
+          </p>
         </div>
 
         {/* Search Bar */}
@@ -155,7 +157,9 @@ export default function Dashboard() {
             priority
           />
           <div className="absolute inset-0 bg-black/30 flex flex-col items-center justify-center text-white text-center">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 px-4">Discover Your Nepal</h2>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 px-4">
+              Discover Your Nepal
+            </h2>
             <p className="mb-4 sm:mb-6 opacity-90 px-4 text-sm sm:text-base">
               Personalized trips to breathtaking destinations.
             </p>
@@ -313,7 +317,7 @@ export default function Dashboard() {
                 <div className="text-left sm:text-right">
                   <div className="text-sm text-gray-500">{b.bookingStatus}</div>
                   <Link
-                    href={`/bookings/${b._id}`}
+                    href={`/user/bookings/${b._id}`}
                     className="text-[#0c7272] underline font-semibold"
                   >
                     View
@@ -333,7 +337,7 @@ export default function Dashboard() {
             Book Accommodation
           </Link>
           <Link
-            href="/bookings"
+            href="/user/bookings"
             className="px-6 sm:px-8 py-3 border border-[#0c7272] text-[#0c7272] rounded-xl text-base sm:text-lg font-semibold shadow hover:bg-[#0c7272] hover:text-white transition text-center"
           >
             My Bookings

@@ -7,7 +7,6 @@ export const createUser = async (userData: FormData) => {
     const token = await getAuthToken();
     const response = await axios.post(API.AUTH.CREATE_USER, userData, {
       headers: {
-        "Content-Type": "multipart/form-data",
         Authorization: `Bearer ${token}`,
       },
     });
@@ -79,7 +78,6 @@ export const updateUser = async (userId: string, userData: FormData) => {
       userData,
       {
         headers: {
-          "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${token}`,
         },
       },

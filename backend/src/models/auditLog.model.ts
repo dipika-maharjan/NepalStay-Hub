@@ -25,7 +25,8 @@ export type AuditAction =
   | "PAYMENT_SUCCESS"
   | "PAYMENT_FAILED"
   | "REVIEW_CREATED"
-  | "ADMIN_ACTION";
+  | "ADMIN_ACTION"
+  | "SECURITY_CENTER_VIEWED";
 
 export interface IAuditLog extends Document {
   _id: mongoose.Types.ObjectId;

@@ -7,14 +7,14 @@ export default function Footer() {
   return (
     <footer className="bg-[#134e4a] text-white pt-12 pb-8">
       <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-10">
-        
         {/* Column 1: Brand & About */}
         <div className="space-y-4">
           <div className="flex items-center gap-2 bg-white w-fit p-1 rounded-lg">
             <Image src={logo} alt="Logo" width={40} height={40} />
           </div>
           <p className="text-sm text-gray-300 leading-relaxed">
-            NepalStayHub helps you discover the hidden gems of the Himalayas with personalized travel experiences.
+            NepalStayHub helps you discover the hidden gems of the Himalayas
+            with personalized travel experiences.
           </p>
         </div>
 
@@ -22,9 +22,21 @@ export default function Footer() {
         <div>
           <h4 className="font-bold text-lg mb-4">Quick Links</h4>
           <ul className="space-y-2 text-sm text-gray-400">
-            <li><Link href="/" className="hover:text-[#ff9f1c]">Home</Link></li>
-            <li><Link href="/map" className="hover:text-[#ff9f1c]">Map</Link></li>
-            <li><Link href="/bookings" className="hover:text-[#ff9f1c]">My Bookings</Link></li>
+            <li>
+              <Link href="/" className="hover:text-[#ff9f1c]">
+                Home
+              </Link>
+            </li>
+            <li>
+              <Link href="/map" className="hover:text-[#ff9f1c]">
+                Map
+              </Link>
+            </li>
+            <li>
+              <Link href="/user/bookings" className="hover:text-[#ff9f1c]">
+                My Bookings
+              </Link>
+            </li>
           </ul>
         </div>
 
@@ -32,8 +44,12 @@ export default function Footer() {
         <div>
           <h4 className="font-bold text-lg mb-4">Contact Us</h4>
           <ul className="space-y-3 text-sm text-gray-400">
-            <li className="flex items-center gap-2"><Mail size={16} /> info@NepalStayHub.com</li>
-            <li className="flex items-center gap-2"><Phone size={16} /> +977 9800000000</li>
+            <li className="flex items-center gap-2">
+              <Mail size={16} /> info@NepalStayHub.com
+            </li>
+            <li className="flex items-center gap-2">
+              <Phone size={16} /> +977 9800000000
+            </li>
           </ul>
         </div>
 

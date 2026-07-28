@@ -57,7 +57,7 @@ export default function Navbar() {
                   </Link>
                 )}
                 <Link
-                  href="/bookings"
+                  href="/user/bookings"
                   className="text-gray-600 hover:text-green-800 font-medium"
                 >
                   Bookings
@@ -120,7 +120,7 @@ export default function Navbar() {
                   Profile
                 </Link>
                 <Link
-                  href="/bookings"
+                  href="/user/bookings"
                   className="text-gray-700 font-medium"
                   onClick={() => setOpen(false)}
                 >

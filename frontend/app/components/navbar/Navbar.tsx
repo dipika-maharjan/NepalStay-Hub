@@ -55,7 +55,9 @@ export default function Navbar() {
         <div className="flex items-center h-16">
           <button
             className="bg-transparent border-none p-0 m-0 flex items-center shrink-0"
-            onClick={() => router.push(isAuthenticated ? "/user/dashboard" : "/")}
+            onClick={() =>
+              router.push(isAuthenticated ? "/user/dashboard" : "/")
+            }
             aria-label="Home"
           >
             <Image src={logo} alt="Logo" width={48} height={48} />
@@ -75,7 +77,7 @@ export default function Navbar() {
               Accommodations
             </Link>
             {!loading && mounted && isAuthenticated && (
-              <Link href="/bookings" className="hover:text-black">
+              <Link href="/user/bookings" className="hover:text-black">
                 My Bookings
               </Link>
             )}
@@ -168,7 +170,7 @@ export default function Navbar() {
             {!loading && mounted && isAuthenticated && (
               <>
                 <Link
-                  href="/bookings"
+                  href="/user/bookings"
                   className="hover:text-black"
                   onClick={closeMobile}
                 >

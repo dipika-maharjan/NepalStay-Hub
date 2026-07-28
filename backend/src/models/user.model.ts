@@ -129,6 +129,11 @@ UserSchema.set("toJSON", {
   transform: (_doc, ret) => {
     const document = ret as Record<string, unknown>;
 
+    if (document.profileImage !== undefined) {
+      document.imageUrl = document.profileImage;
+      delete document.profileImage;
+    }
+
     delete document.password;
     delete document.mfaSecret;
     delete document.previousPasswords;

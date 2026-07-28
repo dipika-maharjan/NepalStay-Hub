@@ -7,21 +7,25 @@ import { getAuthToken } from "../cookie";
 export const updateUserProfile = async (userId: string, formData: FormData) => {
   try {
     const token = await getAuthToken();
-    const response = await axios.put(
-      `${API.AUTH.UPDATE_PROFILE}/${userId}`,
-      formData,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${token}`,
-        },
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5051";
+    
+    const response = await fetch(`${API_BASE_URL}/api/profile`, {
+      method: "PUT",
+      body: formData,
+      credentials: "include",
+      headers: {
+        Authorization: `Bearer ${token}`,
       },
-    );
-    return response.data;
+    });
+    
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Profile update failed");
+    }
+    
+    return data;
   } catch (err: Error | any) {
-    throw new Error(
-      err.response?.data?.message || err.message || "Profile update failed",
-    );
+    throw new Error(err.message || "Profile update failed");
   }
 };
 

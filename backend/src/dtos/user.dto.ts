@@ -24,7 +24,8 @@ export type CreateUserDTO = z.infer<typeof CreateUserDTO>;
 
 export const LoginUserDTO = z.object({
     email: z.email(),
-    password: z.string().min(6)
+    password: z.string().min(6),
+    turnstileToken: z.string(),
 });
 export type LoginUserDTO = z.infer<typeof LoginUserDTO>;
 export const UpdateUserDTO = UserSchema.partial();

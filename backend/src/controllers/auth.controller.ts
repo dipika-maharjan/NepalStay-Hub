@@ -15,6 +15,7 @@ import {
   verifyOTP,
   generateSecureToken,
 } from "../utils/otp.util";
+import { verifyTurnstileToken } from "../utils/turnstile.util";
 import {
   sendVerificationEmail,
   sendPasswordResetEmail,
@@ -209,10 +210,16 @@ export const resendOTP = async (req: Request, res: Response): Promise<void> => {
 // POST /api/auth/login
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, password } = req.body;
+    const { email, password, turnstileToken } = req.body;
 
-    if (!email || !password) {
-      res.status(400).json({ message: "Email and password are required" });
+    if (!email || !password || !turnstileToken) {
+      res.status(400).json({ message: "Email, password, and CAPTCHA token are required" });
+      return;
+    }
+
+    const isHuman = await verifyTurnstileToken(turnstileToken, req.ip);
+    if (!isHuman) {
+      res.status(403).json({ message: "CAPTCHA verification failed. Please try again." });
       return;
     }
 

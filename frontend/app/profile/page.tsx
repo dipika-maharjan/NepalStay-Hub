@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import Navbar from "@/app/components/navbar/Navbar";
 import api from "@/lib/api";
-import { handleUpdateProfile } from "@/lib/actions/user-action";
+import { updateUserProfile } from "@/lib/api/user";
 import { setUserData } from "@/lib/cookie";
 import { normalizeImageUrl } from "@/lib/image";
 
@@ -115,9 +115,10 @@ export default function ProfilePage() {
         data.append("removeImage", "true");
       }
 
-      const result = await handleUpdateProfile(user?._id, data);
+      const result = await updateUserProfile(user?.uuid || user?._id, data);
 
-      if (result.success) {
+      if (result.user) {
+        await setUserData(result.user);
         setProfileSuccess("Profile updated successfully!");
         toast.success("Profile updated");
         setIsEditing(false);
@@ -127,7 +128,7 @@ export default function ProfilePage() {
         toast.error(result.message || "Update failed");
       }
     } catch (err: any) {
-      setProfileError(err.message || "Failed to update profile");
+        setProfileError(err.message || "Failed to update profile");
       toast.error("Update failed");
     } finally {
       setSaving(false);

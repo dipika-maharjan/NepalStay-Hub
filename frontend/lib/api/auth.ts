@@ -76,7 +76,7 @@ export const updateProfile = async (profileData: any) => {
   try {
     const response = await axios.put(API.AUTH.UPDATE_PROFILE, profileData, {
       headers: {
-        "Content-Type": "multipart/form-data", // for file upload/multer
+        // Axios will set Content-Type automatically for FormData
       },
     });
     return response.data;

@@ -75,9 +75,9 @@ export default function AdminBookingsPage() {
   // Search filter
   const filteredBookings = visibleBookings.filter((booking) => {
     const guestName =
-      typeof booking.userId === "object" ? booking.userId.name : "";
+      booking.userId && typeof booking.userId === "object" ? booking.userId.name : "";
     const guestEmail =
-      typeof booking.userId === "object" ? booking.userId.email : "";
+      booking.userId && typeof booking.userId === "object" ? booking.userId.email : "";
     const accommodationName = getAccommodationName(booking);
     const roomTypeName = getRoomTypeName(booking);
     return (
@@ -297,12 +297,12 @@ export default function AdminBookingsPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">
-                        {typeof booking.userId === "object"
+                        {booking.userId && typeof booking.userId === "object"
                           ? booking.userId.name
                           : "N/A"}
                       </div>
                       <div className="text-sm text-gray-500">
-                        {typeof booking.userId === "object"
+                        {booking.userId && typeof booking.userId === "object"
                           ? booking.userId.email
                           : ""}
                       </div>

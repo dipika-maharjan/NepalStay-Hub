@@ -219,6 +219,49 @@ export const updateBooking = async (
   }
 };
 
+// PATCH /api/bookings/:id/status
+export const updateBookingStatuses = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const authReq = req as AuthRequest;
+    const userId = authReq.user?.userId;
+    const role = authReq.user?.role;
+
+    const query: any = { _id: req.params.id };
+    if (role !== "admin") {
+      query.userId = userId;
+    }
+
+    const booking = await BookingModel.findOne(query);
+
+    if (!booking) {
+      res.status(404).json({ message: "Booking not found or access denied" });
+      return;
+    }
+
+    const updatedBooking = await bookingService.updateBookingStatuses(
+      String(booking._id),
+      req.body,
+    );
+
+    res
+      .status(200)
+      .json({
+        message: "Booking status updated successfully",
+        booking: updatedBooking,
+      });
+  } catch (error: unknown) {
+    if (error instanceof HttpError) {
+      res.status(error.statusCode).json({ message: error.message });
+      return;
+    }
+
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 // DELETE /api/bookings/:id
 export const deleteBooking = async (
   req: Request,

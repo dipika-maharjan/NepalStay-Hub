@@ -5,13 +5,13 @@ import { getMyBookings, cancelBooking } from "@/lib/api/booking";
 import { initiateEsewaPayment } from "@/lib/api/payment";
 import { toast } from "react-toastify";
 import Link from "next/link";
-import { Eye, XCircle, Calendar } from "lucide-react";
+import { Eye, XCircle, Calendar, Star } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 
 interface Booking {
     _id: string;
-    accommodationId: { _id: string; name: string };
+    accommodationId: { _id: string; title?: string; name?: string };
     roomTypeId: { _id: string; name: string };
     checkIn: string;
     checkOut: string;
@@ -149,7 +149,7 @@ export default function MyBookingsPage() {
                                 <div className="flex-1 min-w-0 w-full">
                                     <h2 className="text-lg sm:text-xl font-bold text-gray-800">
                                         {typeof booking.accommodationId === 'object' 
-                                            ? booking.accommodationId.name 
+                                            ? (booking.accommodationId.title || booking.accommodationId.name)
                                             : 'N/A'}
                                     </h2>
                                     <p className="text-gray-600 mt-1">
@@ -244,7 +244,7 @@ export default function MyBookingsPage() {
                                         onClick={() => handleCancel(
                                             booking._id,
                                             typeof booking.accommodationId === 'object' 
-                                                ? booking.accommodationId.name 
+                                                ? (booking.accommodationId.title || booking.accommodationId.name || 'this accommodation') 
                                                 : 'this accommodation'
                                         )}
                                         className="flex items-center gap-2 px-4 py-2 border border-red-600 text-red-600 rounded-lg hover:bg-red-50 transition text-sm"
@@ -252,6 +252,15 @@ export default function MyBookingsPage() {
                                         <XCircle size={16} />
                                         Cancel Booking
                                     </button>
+                                )}
+                                {booking.bookingStatus === 'completed' && (
+                                    <Link
+                                        href={`/accommodations/${typeof booking.accommodationId === 'object' ? booking.accommodationId._id : booking.accommodationId}?reviewBookingId=${booking._id}`}
+                                        className="flex items-center gap-2 px-4 py-2 border border-green-600 text-green-600 rounded-lg hover:bg-green-50 transition text-sm"
+                                    >
+                                        <Star size={16} />
+                                        Leave a Review
+                                    </Link>
                                 )}
                             </div>
                         </div>

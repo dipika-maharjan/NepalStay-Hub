@@ -7,6 +7,7 @@ import {
   deleteBooking,
   adminGetAllBookings,
   updateBooking,
+  updateBookingStatuses,
 } from "../controllers/booking.controller";
 import { requireAuth, requireRole } from "../middleware/auth.middleware";
 
@@ -21,6 +22,7 @@ router.get(
   adminGetAllBookings,
 );
 router.get("/:id", requireAuth, getBookingById);
+router.patch("/:id/status", requireAuth, requireRole("admin"), updateBookingStatuses);
 router.patch("/:id", requireAuth, updateBooking);
 router.delete("/:id", requireAuth, deleteBooking);
 router.put("/:id/cancel", requireAuth, cancelBooking);

@@ -73,17 +73,17 @@ export const initiateEsewaPayment = async (req: Request, res: Response) => {
     }
     // Use only required fields for signature and signed_field_names (per eSewa v2 docs)
     const total_amount = String(amount);
-    // Use only alphanumeric and hyphen for transaction_uuid
-    const rawUuid = `booking-${bookingId}-${Date.now()}`;
+    // Use only alphanumeric and hyphen for transaction_uuid (max 36 chars)
+    const rawUuid = `${Date.now()}-${bookingId.slice(-6)}`;
     const transaction_uuid = rawUuid.replace(/[^a-zA-Z0-9-]/g, "");
     // Save transaction_uuid to booking for later lookup
     await BookingModel.findByIdAndUpdate(bookingId, { transaction_uuid });
     const product_code = process.env.ESEWA_MERCHANT_CODE || "EPAYTEST";
     const success_url =
-      process.env.ESEWA_SUCCESS_URL || "http://localhost:3000/payment/success";
+      process.env.ESEWA_SUCCESS_URL || "http://localhost:5051/api/payments/esewa/success";
     const failure_url =
       process.env.ESEWA_FAILURE_URL || "http://localhost:3000/payment/failure";
-    const secret_key = process.env.ESEWA_SECRET_KEY || "";
+    const secret_key = process.env.ESEWA_SECRET_KEY || "8gBm/:&EnhH.1/q";
     const signed_field_names = "total_amount,transaction_uuid,product_code";
     const signature = buildEsewaSignature({
       total_amount,
@@ -122,7 +122,7 @@ export const initiateEsewaPayment = async (req: Request, res: Response) => {
     // Build the full payload for eSewa POST form
     console.log("eSewa v2 POST payload:", formData);
     return res.json({
-      esewaUrl: "https://rc-epay.esewa.com.np/api/epay/main/v2/form",
+      esewaUrl: "https://rc.esewa.com.np/api/epay/main/v2/form",
       formData,
     });
   } catch (error) {

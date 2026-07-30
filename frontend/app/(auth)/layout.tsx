@@ -22,7 +22,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           {/* Logo and Header */}
           <div className="flex flex-col items-center">
             <div className="w-16 h-16 relative ">
-              <Image alt="Logo" src={logo} width={64} height={64} priority />
+              <Image alt="Logo" src={logo} width={64} height={64} priority style={{ width: "auto", height: "auto" }} />
             </div>
           </div>
 

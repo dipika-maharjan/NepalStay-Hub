@@ -26,7 +26,7 @@ export const xssSanitizer = (
   next();
 };
 
-// SSRF protection — validate URLs before any server-side fetch
+// SSRF protection - validate URLs before any server-side fetch
 export const ssrfProtection = (allowedDomains: string[]) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     const urlFields = ["url", "imageUrl", "documentUrl", "callbackUrl"];

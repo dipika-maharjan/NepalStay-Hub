@@ -7,12 +7,13 @@ import {
 } from "../controllers/profile.controller";
 import { requireAuth } from "../middleware/auth.middleware";
 import { generalRateLimiter } from "../middleware/rateLimiter.middleware";
+import { profileUpload } from "../middleware/upload.middleware";
 
 const router = Router();
 
 // All profile routes require authentication
 router.get("/", requireAuth, getProfile);
-router.put("/", requireAuth, updateProfile);
+router.put("/", requireAuth, profileUpload.single("image"), updateProfile);
 router.put("/change-password", requireAuth, changePassword);
 router.get("/export", requireAuth, generalRateLimiter, exportProfileData);
 

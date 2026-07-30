@@ -38,7 +38,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return { token: null as string | null, user: null as any };
     }
 
-    const token = localStorage.getItem("token");
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlToken = urlParams.get("token");
+    if (urlToken) {
+      localStorage.setItem("token", urlToken);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    const token = urlToken || localStorage.getItem("token");
     const storedUser = localStorage.getItem("user_data");
 
     return {
@@ -67,8 +74,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
             await setUserData(data.user);
           }
-        } catch (error) {
-          console.error("Failed to fetch fresh user data:", error);
+        } catch (error: any) {
+          if (error.response?.status === 401) {
+            // Token is invalid or expired
+            if (typeof window !== "undefined") {
+              localStorage.removeItem("token");
+              localStorage.removeItem("user_data");
+            }
+            await clearAuthCookies();
+            userData = null;
+          } else {
+            console.error("Failed to fetch fresh user data:", error);
+          }
         }
       } else if (typeof window !== "undefined") {
         localStorage.removeItem("token");
@@ -76,7 +93,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       setUser(userData);
-      setIsAuthenticated(!!token);
+      setIsAuthenticated(!!userData);
     } catch (err) {
       setIsAuthenticated(false);
       setUser(null);

@@ -8,7 +8,9 @@ import {
   forgotPassword,
   resetPassword,
   getMe,
+  googleCallback,
 } from "../controllers/auth.controller";
+import passport from "passport";
 import {
   authRateLimiter,
   loginRateLimiter,
@@ -25,5 +27,20 @@ router.post("/logout", requireAuth, logout);
 router.post("/forgot-password", authRateLimiter, forgotPassword);
 router.post("/reset-password", authRateLimiter, resetPassword);
 router.get("/me", requireAuth, getMe);
+
+// Google OAuth routes
+router.get(
+  "/google",
+  passport.authenticate("google", { scope: ["profile", "email"] }),
+);
+
+router.get(
+  "/google/callback",
+  passport.authenticate("google", {
+    failureRedirect: `${process.env.CLIENT_URL}/login?error=auth_failed`,
+    session: false,
+  }),
+  googleCallback,
+);
 
 export default router;

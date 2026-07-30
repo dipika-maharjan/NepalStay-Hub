@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import path from "path";
+import passport from "./config/passport";
 import authRoutes from "./routes/auth.route";
 import mfaRoutes from "./routes/mfa.route";
 import profileRoutes from "./routes/profile.route";
@@ -28,18 +29,17 @@ import logger from "./utils/logger.util";
 
 const app: Application = express();
 
-// ─── Stripe webhook — needs raw body, must be FIRST ───────────────────────
-app.use("/api/payments/webhook", express.raw({ type: "application/json" }));
 
-// ─── Security headers via Helmet ──────────────────────────────────────────
+
+// Security headers via Helmet 
 app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "https://js.stripe.com"],
-        frameSrc: ["'self'", "https://js.stripe.com"],
-        connectSrc: ["'self'", "https://api.stripe.com"],
+        scriptSrc: ["'self'"],
+        frameSrc: ["'self'"],
+        connectSrc: ["'self'"],
         imgSrc: ["'self'", "data:", "blob:"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         fontSrc: ["'self'"],
@@ -58,7 +58,7 @@ app.use(
   }),
 );
 
-// ─── CORS — locked to frontend origin only ────────────────────────────────
+// CORS - locked to frontend origin only 
 const corsOptions = {
   origin: [process.env.CLIENT_URL || "http://localhost:3000"],
   credentials: true, // Allow cookies
@@ -67,7 +67,7 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// ─── Body parsing ─────────────────────────────────────────────────────────
+// Body parsing 
 app.use(
   express.json({
     type: (req) => {
@@ -81,12 +81,15 @@ app.use(express.urlencoded({ extended: true }));
 // ─── Cookie parser ────────────────────────────────────────────────────────
 app.use(cookieParser());
 
-// ─── Security middleware stack ────────────────────────────────────────────
+// Initialize passport
+app.use(passport.initialize());
+
+//  Security middleware stack
 app.use(ipBlockMiddleware);
 app.use(generalRateLimiter);
 app.use(mongoSanitize()); // NoSQL injection prevention
 app.use(xssSanitizer); // XSS input sanitization
-app.use(ssrfProtection(["stripe.com", "googleapis.com"])); // SSRF protection
+app.use(ssrfProtection(["googleapis.com"])); // SSRF protection
 
 // Request logging — no sensitive data logged
 app.use((req, _res, next) => {

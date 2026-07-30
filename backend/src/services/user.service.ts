@@ -30,8 +30,10 @@ export class UserService {
       throw new HttpError(404, "User not found");
     }
 
+    if (!user.password) {
+      throw new HttpError(401, "Account uses a third-party login and does not have a password.");
+    }
     const validPassword = await bcryptjs.compare(data.password, user.password);
-
     if (!validPassword) {
       throw new HttpError(401, "Invalid credentials");
     }

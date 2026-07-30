@@ -146,7 +146,7 @@ export const getMyBookings = async (
   }
 };
 
-// GET /api/bookings/:id — IDOR: only traveler or admin
+// GET /api/bookings/:id - IDOR: only traveler or admin
 export const getBookingById = async (
   req: Request,
   res: Response,

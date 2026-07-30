@@ -16,6 +16,12 @@ export const ipBlockMiddleware = async (
 ): Promise<void> => {
   try {
     const ip = getClientIP(req);
+
+    // Whitelist localhost for development/testing
+    if (ip === "127.0.0.1" || ip === "::1" || ip === "::ffff:127.0.0.1") {
+      next();
+      return;
+    }
     const blocked = await IPBlockModel.findOne({
       ipAddress: ip,
       $or: [{ permanent: true }, { expiresAt: { $gt: new Date() } }],

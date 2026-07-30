@@ -6,7 +6,9 @@ export interface IUser extends Document {
   uuid: string;
   name: string;
   email: string;
-  password: string;
+  password?: string;
+  authProvider: "local" | "google";
+  googleId: string | null;
   role: "traveler" | "admin";
   isEmailVerified: boolean;
   mfaEnabled: boolean;
@@ -52,7 +54,16 @@ const UserSchema: Schema = new Schema<IUser>(
     },
     password: {
       type: String,
-      required: true,
+      required: false,
+    },
+    authProvider: {
+      type: String,
+      enum: ["local", "google"],
+      default: "local",
+    },
+    googleId: {
+      type: String,
+      default: null,
     },
     role: {
       type: String,

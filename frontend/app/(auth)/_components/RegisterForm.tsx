@@ -317,12 +317,37 @@ export default function RegisterForm() {
       )}
 
       {step === "register" && (
-        <p className="mt-8 text-center text-sm font-medium">
-          Already have an account?{" "}
-          <a href="/login" className="text-[#00a884] font-bold hover:underline">
-            Login
-          </a>
-        </p>
+        <>
+          <div className="relative mt-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">Or continue with</span>
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <a
+              href="http://localhost:5051/api/auth/google"
+              className="w-full flex items-center justify-center px-4 py-3 border border-gray-300 rounded-xl shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+            >
+              <img
+                className="h-5 w-5 mr-2"
+                src="https://www.svgrepo.com/show/475656/google-color.svg"
+                alt="Google logo"
+              />
+              Sign up with Google
+            </a>
+          </div>
+
+          <p className="mt-8 text-center text-sm font-medium">
+            Already have an account?{" "}
+            <a href="/login" className="text-[#00a884] font-bold hover:underline">
+              Login
+            </a>
+          </p>
+        </>
       )}
     </div>
   );

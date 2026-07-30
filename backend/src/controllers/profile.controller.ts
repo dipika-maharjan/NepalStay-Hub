@@ -51,7 +51,7 @@ export const getProfile = async (
 };
 
 // PUT /api/profile
-// Explicit whitelist — prevents mass assignment attacks
+// Explicit whitelist - prevents mass assignment attacks
 export const updateProfile = async (
   req: Request,
   res: Response,
@@ -60,8 +60,8 @@ export const updateProfile = async (
     const authReq = req as AuthRequest;
     const userId = authReq.user?.userId;
 
-    // Whitelist only safe fields — role/mfaEnabled cannot be set here
-    const { name, phone, bio, profileImage } = req.body;
+    // Whitelist only safe fields - role/mfaEnabled cannot be set here
+    const { name, phone, bio, removeImage } = req.body;
 
     const allowedUpdates: Record<string, unknown> = {};
     if (name !== undefined)
@@ -69,8 +69,12 @@ export const updateProfile = async (
     if (phone !== undefined) allowedUpdates.phone = String(phone).trim();
     if (bio !== undefined)
       allowedUpdates.bio = String(bio).trim().slice(0, 500);
-    if (profileImage !== undefined)
-      allowedUpdates.profileImage = String(profileImage);
+
+    if (req.file) {
+      allowedUpdates.profileImage = `/uploads/profiles/${req.file.filename}`;
+    } else if (removeImage === 'true') {
+      allowedUpdates.profileImage = null;
+    }
 
     if (Object.keys(allowedUpdates).length === 0) {
       res.status(400).json({ message: "No valid fields provided for update" });
@@ -123,6 +127,11 @@ export const changePassword = async (
       return;
     }
 
+    if (!user.password) {
+      res.status(400).json({ message: "Account uses a third-party login and does not have a password." });
+      return;
+    }
+
     const isCurrentValid = await comparePassword(
       currentPassword,
       user.password,
@@ -134,12 +143,10 @@ export const changePassword = async (
 
     const validation = validatePassword(newPassword, user.name);
     if (!validation.isValid) {
-      res
-        .status(400)
-        .json({
-          message: "Password does not meet requirements",
-          errors: validation.errors,
-        });
+      res.status(400).json({
+        message: "Password does not meet requirements",
+        errors: validation.errors,
+      });
       return;
     }
 

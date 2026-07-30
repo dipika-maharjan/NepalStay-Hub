@@ -249,9 +249,16 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       });
       return;
     }
+    if (!user.password) {
+      await logAction(null, "USER_LOGIN_FAILED", req, {
+        email,
+        reason: "password_not_set",
+      });
+      res.status(401).json({ message: "Invalid email or password" });
+      return;
+    }
 
     const isPasswordValid = await comparePassword(password, user.password);
-
     if (!isPasswordValid) {
       user.failedLoginAttempts = (user.failedLoginAttempts || 0) + 1;
 
@@ -470,5 +477,32 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
     res.status(200).json({ user });
   } catch {
     res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// GET /api/auth/google/callback
+export const googleCallback = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = req.user as any; // Passport attaches user to req
+    if (!user) {
+      res.redirect(`${process.env.CLIENT_URL}/login?error=auth_failed`);
+      return;
+    }
+
+    const token = generateToken({
+      userId: user.userId,
+      role: user.role,
+      uuid: user.uuid,
+    });
+
+    res.cookie("token", token, COOKIE_OPTIONS);
+    await logAction(user.userId, "USER_LOGIN_GOOGLE", req, {
+      role: user.role,
+    });
+
+    res.redirect(`${process.env.CLIENT_URL}/?token=${token}`); // Redirect to frontend
+  } catch (error) {
+    console.error("Google callback error:", error);
+    res.redirect(`${process.env.CLIENT_URL}/login?error=server_error`);
   }
 };

@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { getSecurityStatus } from "@/lib/api/security";
-import { 
-  ShieldCheck, Mail, Smartphone, Key, Monitor, Lock, AlertTriangle, 
+import {
+  ShieldCheck, Mail, Smartphone, Key, Monitor, Lock, AlertTriangle,
   Clock, ShieldBan, Bot, ArrowRight, CheckCircle2
 } from "lucide-react";
 import { toast } from "react-toastify";
@@ -81,16 +81,16 @@ export default function SecurityCenter() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      
-      <main className="px-6 py-8 max-w-5xl mx-auto space-y-6">
-        
+
+      <main className="px-6 py-8 max-w-7xl mx-auto space-y-6">
+
         {/* Header Area */}
         <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Security Center</h1>
             <p className="text-gray-500 mt-1">Review and manage your account security.</p>
           </div>
-          
+
           <div className="flex items-center gap-6">
             <div className="text-right">
               <p className="text-sm font-semibold text-gray-500 mb-1">Security Score</p>
@@ -101,7 +101,7 @@ export default function SecurityCenter() {
                 <span className={`mt-1 font-bold ${scoreData.color}`}>{scoreData.label}</span>
               </div>
             </div>
-            
+
             {/* Score Legend Card */}
             <div className="hidden md:block bg-gray-50 p-4 rounded-lg border border-gray-200 text-sm text-gray-600 space-y-2 font-mono">
               <div className="flex justify-between gap-8"><span>Needs Attention</span><span className="font-semibold text-red-600">&lt; 50</span></div>
@@ -112,12 +112,12 @@ export default function SecurityCenter() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+
           {/* Left Column - Main Security Checks */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              
+          <div className="xl:col-span-3 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
               {/* Email Verification */}
               <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex items-start gap-4">
                 <div className="text-gray-600 mt-1">
@@ -165,7 +165,7 @@ export default function SecurityCenter() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Cloudflare Turnstile */}
               <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex items-start gap-4">
                 <div className="text-gray-600 mt-1">
@@ -250,7 +250,7 @@ export default function SecurityCenter() {
                 </div>
               </div>
             </div>
-            
+
             {/* Recommendations Block */}
             <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm">
               <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2 mb-4">
@@ -258,7 +258,7 @@ export default function SecurityCenter() {
                 Security Recommendations
               </h3>
               {status.recommendations && status.recommendations.length > 0 ? (
-                <ul className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700">
+                <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-gray-700">
                   {status.recommendations.map((rec, index) => (
                     <li key={index} className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100">
                       <span className="w-2 h-2 rounded-full bg-[#0c7272] mt-2"></span>
@@ -274,14 +274,14 @@ export default function SecurityCenter() {
 
           {/* Right Column - Logs & Activity */}
           <div className="space-y-6">
-            
+
             {/* Last Successful Login */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
               <h3 className="font-bold text-gray-900 text-lg flex items-center gap-2 mb-6 border-b pb-4">
                 <Monitor size={20} className="text-gray-500" />
                 Last Successful Login
               </h3>
-              
+
               {status.lastLogin ? (
                 <div className="space-y-5">
                   <div>
@@ -318,7 +318,7 @@ export default function SecurityCenter() {
                 <ShieldCheck size={20} className="text-gray-500" />
                 Score Breakdown
               </h3>
-              
+
               <div className="space-y-4">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-600">Email Verified</span>
@@ -354,7 +354,7 @@ export default function SecurityCenter() {
                     {!status.accountLocked ? "+20" : "0"}
                   </span>
                 </div>
-                
+
                 <div className="pt-4 border-t border-gray-100 flex items-center justify-between font-bold text-gray-900">
                   <span>Total</span>
                   <span>{status.securityScore} / 100</span>

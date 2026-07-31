@@ -506,3 +506,8 @@ export const googleCallback = async (req: Request, res: Response): Promise<void>
     res.redirect(`${process.env.CLIENT_URL}/login?error=server_error`);
   }
 };
+  } catch (error) {
+  console.error("Google callback error:", error);
+  res.redirect(`${process.env.CLIENT_URL}/login?error=server_error`);
+}
+};
